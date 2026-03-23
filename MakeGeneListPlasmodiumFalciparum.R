@@ -11,7 +11,7 @@ names(gff_raw) <- c("seqnames", "source", "type", "start", "end",
                     "score", "strand", "phase", "attributes")
 
 parse_gff_attr <- function(attributes, key) {
-  pattern <- paste0("(?<=", key, "=)[^;]+")
+  pattern <- paste0("(?<=", key, "=)[^;]+") #Create function to extract from the table using characters to match the pattern
   match <- regmatches(attributes, regexpr(pattern, attributes, perl = TRUE))
   ifelse(length(match) == 0, NA, match)
 }
