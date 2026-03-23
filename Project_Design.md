@@ -8,11 +8,8 @@ through identifying common single-nucleotide polymorphisms (SNPs) or
 point mutations in a genome(1). SNPs are the most common mutation and
 utilized in GWAS as genetic markers of highly variable regions in an
 organism's genome that are often linked to disease states and drug
-interactions. When a gene is diseased, SNPs often appear around the
-region, which researchers can use as a genetic marker for the
-disease(2). Researchers conducting GWAS use these regions with SNPs as
-genetic markers for identifying genes and subsequently coding regions
-that are in the disease state. Most GWAS studies are conducted with
+interactions. When a gene is associated with a disease, SNPs are often found in the surrounding region, which researchers can use as a genetic marker for the disease (2). Researchers conducting GWAS use these regions with SNPs as
+genetic markers for identifying genes subsequently coding regions that contain alleles associated with the disease state. Most GWAS studies are conducted with
 humans, combining diseased and healthy individuals so researchers can
 identify variable regions that are likely contributing to the disease in
 individuals to understand modality and paths to treatment of the
