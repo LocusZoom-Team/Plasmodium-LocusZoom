@@ -16,12 +16,12 @@ parse_gff_attr <- function(attributes, key) {
   ifelse(length(match) == 0, NA, match)
 }
 
-gff_raw$ID          <- sapply(gff_raw$attributes, parse_gff_attr, key = "ID")
-gff_raw$Name        <- sapply(gff_raw$attributes, parse_gff_attr, key = "Name")
+gff_raw$ID <- sapply(gff_raw$attributes, parse_gff_attr, key = "ID")#Use function to get ID
+gff_raw$Name <- sapply(gff_raw$attributes, parse_gff_attr, key = "Name") #Use function to get Name
 gff_raw$description <- sapply(gff_raw$attributes, parse_gff_attr, key = "description")
-gff_raw$Parent      <- sapply(gff_raw$attributes, parse_gff_attr, key = "Parent")
+gff_raw$Parent <- sapply(gff_raw$attributes, parse_gff_attr, key = "Parent")
 gff_raw$attributes  <- NULL
-gff_df <- gff_raw
+gff_df <- gff_raw #Save it to a new file 
 
 valid_chroms <- c(paste0("Pf3D7_", sprintf("%02d", 1:14), "_v3"),
                   "Pf3D7_API_v3",
