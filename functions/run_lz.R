@@ -10,7 +10,7 @@ options(future.globals.maxSize = 20 * 1024 ^ 3)
 # Load LZ functions
 source('src/lz_scripts/locus_zoom.R')
 
-gene_list = read.delim("src/lz_scripts/UCSC_GRCh37_Genes_UniqueList.txt", stringsAsFactors = F, header = T) #########################################################change to our unique gene list file
+gene_list = read.delim("src/lz_scripts/PlasmoDB_Pfalciparum3D7_UniqueGeneList.txt", stringsAsFactors = F, header = T) #########################################################change to our unique gene list file
 #change to plasmodium unique genes
 args = commandArgs(trailingOnly = T)
 
