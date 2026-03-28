@@ -17,7 +17,7 @@ mkdir -p ld_files
 
 #Run PLINK to calculate LD
 
-${plink_path}/plink \
+${plink_path} \
     --bfile ${bfile_prefix} \
     --allow-extra-chr \
     --chr ${chr} \
@@ -25,7 +25,7 @@ ${plink_path}/plink \
     --to-bp ${pos_end} \
     --r2 \
     --ld-window 100000000 \
-    --ld-window-kb {window_kb}\
+    --ld-window-kb ${window_kb} \
     --ld-window-r2 0 \
     --ld-snp ${top_snp} \
     --keep-allele-order \
