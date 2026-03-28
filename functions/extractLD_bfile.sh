@@ -1,6 +1,6 @@
 #!/bin/sh
 #Calculates the linkage disequilibrium(LD) between a top snp and the variants within a specific window using PLINK
-# Usage: bash extractLD_bfile.sh plink_path bfile_prefix keep_file chr pos_start pos_end top_snp out_file
+# Usage: bash extractLD_bfile.sh plink_path bfile_prefix chr pos_start pos_end top_snp window_kb out_file
 
 
 plink_path=$1
