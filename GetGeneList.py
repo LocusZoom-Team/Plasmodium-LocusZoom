@@ -18,12 +18,12 @@ with open("Pfalciparum3D7.gff") as f:
         endPosition = int(section[4])
         attributes = section[8]
 
-        chromosomeMatch = re.search(r'Pf3D7_(\d+)_v3', chromosome)
+        chromosomeMatch = re.search(r'Pf3D7_\d+_v3', chromosome)
 
         if not chromosomeMatch:
             continue
 
-        chromosomeNumber = int(chromosomeMatch.group(1))
+        
 
         attributesDict = {}
 
@@ -36,7 +36,7 @@ with open("Pfalciparum3D7.gff") as f:
         else:
             gene_id = attributesDict.get("ID")
 
-        records.append({"Gene": gene_id, "Chrom": chromosomeNumber, "Start": startPosition, "End": endPosition, "Coding": geneTypes[section[2]]})
+        records.append({"Gene": gene_id, "Chrom": chromosome, "Start": startPosition, "End": endPosition, "Coding": geneTypes[section[2]]})
 
 df = pd.DataFrame(records)
 df = df.sort_values("End").drop_duplicates(subset="Gene", keep="last")
