@@ -126,7 +126,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
       genes.data$Chrom <- as.numeric(genes.data$Chrom)
     }
   }
-############################################################################################## this needs to be changed to match p falciparum chromosomes
+############################################################################################## does this need to be changed to match p falciparum chromosomes?
 #based on what we specify in the data file, this data file comes from where? data file comes from the front end LZ run
 
   # Get start and end regions for plotting and for pulling out data:
