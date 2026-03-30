@@ -127,7 +127,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
     }
   }
 ############################################################################################## does this need to be changed to match p falciparum chromosomes?
-#based on what we specify in the data file, this data file comes from where? data file comes from the front end LZ run
+#based on what we specify in the data file, this data file comes from runing locus.zoom function in R. Specify data file in the function via data = associationfile
 
   # Get start and end regions for plotting and for pulling out data:
   if (all(is.na(region))) {
