@@ -3,7 +3,7 @@ import re #Import package to search for chromosome name
 
 records = [] #Created an empty list to hold things in
 
-geneTypes = {"protein_coding_gene" : "Coding", "ncRNA_gene" : "Non-Coding", "pseudogene": "Non-coding"} #Gene types to grab our total genes, number means coding or not
+geneTypes = {"protein_coding_gene" : "Coding", "ncRNA_gene" : "Non-Coding", "pseudogene": "Non-Coding"} #Gene types to grab our total genes, number means coding or not
 
 with open("Pfalciparum3D7.gff") as f: #Open file
     for line in f: #go line by line
@@ -42,4 +42,4 @@ df = pd.DataFrame(records)
 df = df.sort_values("End").drop_duplicates(subset="Gene", keep="last")
 df = df.sort_values(["Chrom", "Start"]).reset_index(drop=True)
 
-df.to_csv("Pfalciparum_gene_list.tsv", sep="\t", index=False)
+df.to_csv("Pfalciparum_gene_list.txt", sep="\t", index=False)
