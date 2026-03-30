@@ -1,15 +1,15 @@
-import pandas as pd
-import re
+import pandas as pd #Import this for the final file generation
+import re #Import package to search for chromosome name
 
-records = []
+records = [] #Created an empty list to hold things in
 
-geneTypes = {"protein_coding_gene" : 1, "ncRNA_gene" : 0, "pseudogene":0}
+geneTypes = {"protein_coding_gene" : "Coding", "ncRNA_gene" : "Non-Coding", "pseudogene": "Non-coding"} #Gene types to grab our total genes, number means coding or not
 
-with open("Pfalciparum3D7.gff") as f:
-    for line in f:
-        if line.startswith("#"):
-            continue
-        section = line.strip().split("\t")
+with open("Pfalciparum3D7.gff") as f: #Open file
+    for line in f: #go line by line
+        if line.startswith("#"): #Anything with a # is a commment, so skip
+            continue #go to next line
+        section = line.strip().split("\t") #split section based on tab since tab delimitedp
         if section[2] not in geneTypes:
             continue
 
