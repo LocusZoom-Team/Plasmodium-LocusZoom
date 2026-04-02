@@ -117,7 +117,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
   }
   
   # convert 'chr1' to '1' 
-  if(!nonhuman){
+  if(!nonhuman){ ####DELETE
     if(!(class(genes.data$Chrom) %in% c("integer", "numeric"))){
       genes.data$Chrom <- gsub(genes.data$Chrom, pattern = "chr", replacement = "")
       genes.data$Chrom[genes.data$Chrom == "X"] <- 23
@@ -148,16 +148,16 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
   genes.data = genes.data[genes.data$Start < region[3], ]
   
   # Remove psuedogenes & RNA Info:
-  if(!psuedogenes) {
+  if(!psuedogenes) { ##DELETE
     genes.data = genes.data[!(genes.data$Coding %in% c("psuedogene", "Non-Coding")), ]
   }
   
-  if(!RNAs) {
+  if(!RNAs) { ##DELETE
     genes.data = genes.data[!(genes.data$Coding %in% c("lncRNA", "ncRNA")), ]
   } #might need change this, but also could leave it since its an if statement############################################
   
   # Pull out the relevant information from the gene p-values data
-  if(colour.genes) {
+  if(colour.genes) { ##DELETE
     if(!all(c("Gene", "P") %in% names(genes.pvalue))){
       stop("Your genes.pvalue file does not contain a Gene or P column.\nCheck your file header.")
     }
@@ -177,7 +177,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
     data = lapply(data, function(x) subset.data(x, region))
     lead.data = data[[1]]
   }
-################################################################################this will likely need to be changed since we are calculating log differently
+####################################################################################BASE THIS ON MONO FILES?
   # Get info on lead variant:
   if (ignore.lead) {
     if (is.na(snp)) {
@@ -313,7 +313,7 @@ plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, 
   plot(x = data.plot$BP, y = rep(1, times = nrow(data.plot)), axes = FALSE, pch = "|", xlab = "", ylab = "Plotted\nSNPs", las = 2, xlim = c(x.min, x.max), cex.lab = 0.8, col = alpha(colour = "black", alpha = 0.2))
   title(plot.title, line = 0)
   
-  # Plot Manhattan/LocusZoom of region
+  # Plot Manhattan/LocusZoom of region ########################################################## this would be good to look at
   par(mar = c(0, 4, 0, 8), mgp = c(2, 1, 0), xpd = FALSE)
   ylab = ifelse(sig.type == "P" | sig.type == "logP", expression(-log[10](italic(P))), expression(log[10](BF)))
   plot(x = data.plot$BP, y = data.plot$logP, ylim = c(0, y.max*1.1), pch = 20, col = as.character(data.plot$Colour), xlab = "", ylab = ylab, cex = 0.8, xaxt = "n", xlim = c(x.min, x.max))
@@ -340,12 +340,12 @@ plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, 
   }
   
   # Add LD legend
-  legend.colour = c("#FF0000", "#FFA500", "#00FF00", "#87CEFA", "#000080", "#7F7F7F")
+  legend.colour = c("#FF0000", "#EEEE00", "#FFA500", "FFC1C1", "#00FF00", "8B5742", "#87CEFA", "#CD6090", "#BF3EFF", "#000080", "#7F7F7F")
   par(xpd = TRUE)
-  legend(x = "topright", legend = c("1.0", "0.8", "0.6", "0.4", "0.2", "Unknown"), col = legend.colour, fill = legend.colour, border = legend.colour, pt.cex = 1.2, cex = 0.8, bg = "white", box.lwd = 0, title = expression("r"^2), inset = c(-0.14, 0.01))
+  legend(x = "topright", legend = c("1.0", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "Unknown"), col = legend.colour, fill = legend.colour, border = legend.colour, pt.cex = 1.2, cex = 0.8, bg = "white", box.lwd = 0, title = expression("r"^2), inset = c(-0.14, 0.01))
 }
 
-##### Function to check if the input variants have rsIDs ####
+##### Function to check if the input variants have rsIDs #### ###########DELETE
 check.rsid <- function(snp = NULL) {
   # Stop if CHR:POS ID:
   if (any(!grepl('rs', snp))) {
@@ -567,7 +567,7 @@ get.ld <- function(region, snp, population) {
     region[1] = "X"
   }
   
-  vcf.filename = "POP_chrZZ.no_relatives.no_indel.biallelic.vcf.gz"
+  vcf.filename = "POP_chrZZ.no_relatives.no_indel.biallelic.vcf.gz" ############ DELETE
   vcf.filename = gsub(pattern = 'ZZ', replacement = region[1], vcf.filename)
   if(population == "TAMA"){
     vcf.filename = gsub(pattern = 'POP', replacement = "AFR_AMR_EAS_EUR", vcf.filename)
@@ -578,7 +578,7 @@ get.ld <- function(region, snp, population) {
   # check necessary 1000 genomes file can be reached
   if(!(vcf.filename %in% list.files(path = paste0("/Volumes/archive/merrimanlab/reference_files/VCF/1000Genomes_vcf_files/Phase3_March2017/", population)))){
     stop(paste0("The file ", paste0("/Volumes/archive/merrimanlab/reference_files/VCF/1000Genomes_vcf_files/Phase3_March2017/", population, "/", vcf.filename), " cannot be found."))
-  }
+  } ####################### DELETE
   
   # gsub the command and filename for chr, start/end positions and the population:
   base.command = "source ~/.bashrc;
