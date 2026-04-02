@@ -11,7 +11,7 @@ with open("Pfalciparum3D7.gff") as f: #Open file
             continue #go to next line
         section = line.strip().split("\t") #split section based on tab since tab delimitedp
         if section[2] not in geneTypes: #Filter out anything that's not a gene
-            continue
+            continue #skip ahead to the next line
 
         chromosome = section[0]
         startPosition = int(section[3])
