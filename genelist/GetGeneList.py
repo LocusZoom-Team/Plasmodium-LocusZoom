@@ -10,7 +10,7 @@ with open("Pfalciparum3D7.gff") as f: #Open file
         if line.startswith("#"): #Anything with a # is a commment, so skip
             continue #go to next line
         section = line.strip().split("\t") #split section based on tab since tab delimitedp
-        if section[2] not in geneTypes:
+        if section[2] not in geneTypes: #Filter out anything that's not a gene
             continue
 
         chromosome = section[0]
