@@ -1,9 +1,9 @@
 library(dplyr)
 library(vroom)
 
-Example.assoc.linear <- read.delim("Example.assoc.linear", stringsAsFactors = FALSE, header = TRUE)
+example.assoc.log <- read.delim("example.assoc.log", stringsAsFactors = FALSE, header = TRUE)
 Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE)
-UCSC_GRCh37_Genes_UniqueList.txt <- read.delim("UCSC_GRCh37_Genes_UniqueList.txt", stringsAsFactors = FALSE, header = TRUE)
+PF_Ex_Genes.txt <- read.delim("PF_Ex_Genes.txt", stringsAsFactors = FALSE, header = TRUE) ####placeholder file name
 
 # load the locuszoom function into R
 source("functions/locus_zoom.R")
