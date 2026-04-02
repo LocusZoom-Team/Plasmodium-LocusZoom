@@ -28,18 +28,18 @@ with open("Pfalciparum3D7.gff") as f: #Open file
         attributesDict = {} #Create attribute dictionary to store attributes for gene name
 
         for attribute in attributes.split(";"): #Split the attribute based on semicolon, that's how attribute is split
-            key, value = attribute.split("=",1) #Then split it again based on equal sign
-            attributesDict[key.strip()] = value.strip() #add name for key in dictionary, 
+            key, value = attribute.split("=",1) #Then split it again based on equal sign, use tuple unpacking
+            attributesDict[key.strip()] = value.strip() #add name or ID for key in dictionary, and value, strip whitespace
         
-        if attributesDict.get("Name"):
-            gene_id = attributesDict.get("Name")
+        if attributesDict.get("Name"): #See if name is in attributes dict
+            gene_id = attributesDict.get("Name") #Get value for name
         else:
-            gene_id = attributesDict.get("ID")
+            gene_id = attributesDict.get("ID") #Other get value for ID
 
-        records.append({"Gene": gene_id, "Chrom": chromosome, "Start": startPosition, "End": endPosition, "Coding": geneTypes[section[2]]})
+        records.append({"Gene": gene_id, "Chrom": chromosome, "Start": startPosition, "End": endPosition, "Coding": geneTypes[section[2]]}) #Add to our file
 
-df = pd.DataFrame(records)
-df = df.sort_values("End").drop_duplicates(subset="Gene", keep="last")
-df = df.sort_values(["Chrom", "Start"]).reset_index(drop=True)
+df = pd.DataFrame(records) #Change file to dataframe to sort lines
+df = df.sort_values("End").drop_duplicates(subset="Gene", keep="last") #get rid of duplicates, keep the last one
+df = df.sort_values(["Chrom", "Start"]).reset_index(drop=True) #Sort df based on chrom and start
 
-df.to_csv("Pfalciparum_gene_list.txt", sep="\t", index=False)
+df.to_csv("Pfalciparum_gene_list.txt", sep="\t", index=False) #write to file and we are done
