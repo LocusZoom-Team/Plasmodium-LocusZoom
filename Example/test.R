@@ -2,7 +2,7 @@ library(dplyr)
 library(vroom)
 
 example.assoc.log <- read.delim("example.assoc.log", stringsAsFactors = FALSE, header = TRUE)
-Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE)
+Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE) ###########################only thing we need to change
 Example.genes <- read.delim("Example.genes", stringsAsFactors = FALSE, header = TRUE)
 
 # load the locuszoom function into R
