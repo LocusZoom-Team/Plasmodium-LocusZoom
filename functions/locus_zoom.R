@@ -40,7 +40,23 @@
 # rsid.check: specify whether to check if the SNPs are labelled with rsIDs # should only matter if script is calculating LD for you (defaults to TRUE)
 # nonhuman: specify whether the data to plot has come from a non-human sample-set (defaults to FALSE) # if the data going in is from a non-human species make sure the chromosome column is only numbers (e.g. 1 instead of chr1, 23 instead of X). 
                                                            
-
+#####GABE: Writing this so I can track and understand the code
+##### starts by making a function with all of these variables set to NULL or FALSE or TRUE. Based on the data being plotted, the function will set these variables to different things
+##### user must have R scales packages downloaded
+##### will set lead.data to the data (maybe as a copy of the OG data?)
+##### checks that data has necessary column headers that locuszoom uses to call
+##### checks that SNPs are in proper format
+##### converts chr1 to just the number 1
+##### uses chr, start, end, and gene, with the get region function(common package in R) so I THINK that by setting these regions, it will pull all the genes in that region. This also may be outdated, we will see when we test. (Updated function = get_region())
+##### redefines the region? honestly not sure why it would need to do this or what this is specifically for
+##### if the position of a gene falls on OR in (+ or -) the defined region, that gene will be included
+##### deletes pseudogenes and RNA info from the data based on the region. We will likely delete OR edit this so that it deletes other information in our data files that we dont need
+##### by pulling out the p-value of the genes, they can showcase how significant each gene is
+##### pullout the data only pertaining to the region, then set each data point to the same logBF format for plotting
+##### pulls out stats for lead variant, but how is the lead variant found already? im assuming that during the logBF formatting, the code maybe puts each variant in descending order based on logBF value, so the lead variant will be the first one/will have highest association with SNP and phenotype
+##### calculate LD from 1000 genomes data if ld is not supplied (we will delete this part)
+##### merge ld with data dataframe so that you can parse both while plotting
+##### plot:
 
 ## LD Colours
 # 1.0 - 0.9 = #FF0000
@@ -66,7 +82,7 @@
 
 #### Function to make LocusZoom like plots ####
 locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = NULL, offset_bp = 200000, genes.data = NULL, psuedogenes = FALSE, RNAs = FALSE, plot.title = NULL, plot.type = "jpg", nominal = 6, significant = 7.3, file.name = NULL, secondary.snp = NA, secondary.label = FALSE, secondary.circle = TRUE, genes.pvalue = NULL, colour.genes = FALSE, population = "EUR", sig.type = "P", nplots = FALSE, ignore.lead = FALSE, rsid.check = TRUE, nonhuman = FALSE) {
-  
+  ###will need to change rsID check 
   # Define constants:
   #OLD LD.colours <- data.frame(LD = as.character(seq(from = 0, to = 1, by = 0.1)), Colour = c("#000080",rep(c("#000080", "#87CEFA", "#00FF00", "#FFA500", "#FF0000"), each = 2)), stringsAsFactors = FALSE)
   LD.colours <- data.frame(LD = as.character(seq(from=0, to =1, by = 0.1)), Colour = c("#000080",rep(c('#000080', "#BF3EFF", "#CD6090", "#87CEFA","#8B5742", "#00FF00","#FFC1C1", "#FFA500", "#EEEE00" "#FF0000"), each = 1)), stringsAsFactors = FALSE)
@@ -117,7 +133,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
   }
   
   # convert 'chr1' to '1' 
-  if(!nonhuman){ ####DELETE
+  if(!nonhuman){ #######################we have two options: edit the original gene list py script to generate the gene list chrom columns as pf3d7 numbers and DELETE THIS, or we can leave it as is and reframe this so that it changes all PF3D7_1 to just 1
     if(!(class(genes.data$Chrom) %in% c("integer", "numeric"))){
       genes.data$Chrom <- gsub(genes.data$Chrom, pattern = "chr", replacement = "")
       genes.data$Chrom[genes.data$Chrom == "X"] <- 23
@@ -131,7 +147,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = 
 
   # Get start and end regions for plotting and for pulling out data:
   if (all(is.na(region))) {
-    region = get.region(lead.data, snp, genes.data, gene)
+    region = get.region(lead.data, snp, genes.data, gene) 
   } else {
     offset_bp = ifelse(is.na(offset_bp), 0, offset_bp)
   }
