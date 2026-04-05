@@ -573,6 +573,9 @@ elog10 <- function(p) {
   return(res)
 }
 
+
+
+                       #################################DELETE, DOES NOT APPLY
 #### Function to get the LD information of specified population from the 1000 Genomes data (March 2017 release): ####
 # NOTE: the input SNP MUST be in rsID format, not CHR:POS-based.
 # NOTE: This function will leave/save the LD information in the working directory for future reference (e.g. if the user wanted to use the same LD information)
