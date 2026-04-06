@@ -1,0 +1,42 @@
+PLINK v2.00a4.5LM 64-bit Intel (13 Aug 2023)
+Options in effect:
+  --allow-extra-chr
+  --geno 0.1
+  --keep /home/belinda/PF_CHROMOSOMES/FILES/fws_monclonal.list
+  --maf 0.01
+  --make-pgen
+  --max-alleles 2
+  --mind 0.1
+  --out ./MONO/mono_07
+  --pfile Pf3D7_07.v3
+  --set-all-var-ids @:#
+  --snps-only
+
+Hostname: pop-os
+Working directory: /home/belinda/PF_CHROMOSOMES/PGEN_PLINK
+Start time: Wed Feb 18 12:18:32 2026
+
+Random number seed: 1771438712
+515862 MiB RAM detected, ~505067 available; reserving 257931 MiB for main
+workspace.
+Using up to 72 threads (change this with --threads).
+33325 samples (0 females, 0 males, 33325 ambiguous; 33325 founders) loaded from
+Pf3D7_07.v3.psam.
+448964 out of 676481 variants loaded from Pf3D7_07.v3.pvar.
+Note: No phenotype data present.
+--keep: 15664 samples remaining.
+Calculating sample missingness rates... done.
+4293 samples removed due to missing genotype data (--mind).
+IDs written to ./MONO/mono_07.mindrem.id .
+11371 samples (0 females, 0 males, 11371 ambiguous; 11371 founders) remaining
+after main filters.
+Calculating allele frequencies... done.
+--geno: 68120 variants removed due to missing genotype data.
+374954 variants removed due to allele frequency threshold(s)
+(--maf/--max-maf/--mac/--max-mac).
+5890 variants remaining after main filters.
+Writing ./MONO/mono_07.psam ... done.
+Writing ./MONO/mono_07.pvar ... done.
+Writing ./MONO/mono_07.pgen ... done.
+
+End time: Wed Feb 18 12:19:24 2026
