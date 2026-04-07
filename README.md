@@ -1,13 +1,24 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5154379.svg)](https://doi.org/10.5281/zenodo.5154379)
 
-# LocusZoom-like Plots for GWAS Results
-Authors: Tanya J Major and Riku Takei
+# Authors
+Original LocusZoom Authors: Tanya J Major and Riku Takei
+_Plasmodium falciparum_ Authors: Kashif Bokhari, Belinda Ofosu, and Gabriel Wegman
 
-## Make LocusZoom-like plots with your own LD matrix.
+## Originally LocusZoom-like plots for human GWAS, Now for _Plasmodoium Falciparum_ GWAS
+This package was built from the original LocusZoom plotting tool: https://github.com/Geeketics/LocusZooms
+
+The purpose of this tool is to allow users to generate LocusZoom plots from _Plasmodium falciparum_ GWAS data. This package does not generate plots for non-Plasmodium data.
+
+## Make LocusZoom-like plots for _Plasmodium flaciparum_ using MalariaGen and our LD Matrix Generation File
+
+********
+The GWAS data used for generating LD matrices can be found at https://www.malariagen.net/resource/34/
+
+The Phenotypic data needed for logistic association metrics can be found in the Phenotypes folder.
+
+********
 
 This package allows the user to create regional Manhattan plots from p-values, log(p-values), or log(Bayes Factors) with points coloured according to LD and genes annotated beneath. The LD input can be generated from the users own data (e.g. for a non-reference population). The package comes with a number of reference files for gene annotation, but is not limited to the use of these files.
-
-This package was created for use with human SNP data, but can be used to plot non-human data.
 
 This script creates an R function to create LocusZoom-like plots. Three example input files are included for test purposes, along with an example .jpg output.
 
@@ -16,7 +27,6 @@ This script has one package dependency: `scales`
   - Example.assoc.linear: A file of PLINK association results (only the "CHR", "SNP", "BP", and "P" columns are essential)
   - Example.ld: A file of the LD between the SNP to be labelled (top-hit / SNP of interest) and the SNPs included in the PLINK results file
     - this file MUST have a column called "SNP_B" (containing a list of all the SNPs in the results file) and a column called "R2" (containing the R^2 LD value of each SNP). The SNP names MUST match the names in the SNP column of the results file.
-    - this file can be created for you by the locus_zoom.R script IF you have access to the Biochem servers and have rsIDs in your results file, if you are running this script on your local machine you will also need to ensure bcftools and plink2 are installed
   - Example.genes: A file of the genes within the region for use in the annotation step. This file must have five columns, "Gene", "Chrom", "Start", "End", and "Coding". The `{Gencode,UCSC}_GRCh37_Genes_UniqueList{2017,2021}.txt` files can be used for this file.
 
 ### Example locus.zoom run:
