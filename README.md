@@ -2,10 +2,13 @@
 
 # Authors
 Original LocusZoom Authors: Tanya J Major and Riku Takei
+
 _Plasmodium falciparum_ Authors: Kashif Bokhari, Belinda Ofosu, and Gabriel Wegman
 
 ## Originally LocusZoom-like plots for human GWAS, Now for _Plasmodoium Falciparum_ GWAS
 This package was built from the original LocusZoom plotting tool: https://github.com/Geeketics/LocusZooms
+
+Original Paper On LocusZoom: https://doi.org/10.1093/bioinformatics/btq419
 
 The purpose of this tool is to allow users to generate LocusZoom plots from _Plasmodium falciparum_ GWAS data. This package does not generate plots for non-Plasmodium data.
 
@@ -24,10 +27,18 @@ This script creates an R function to create LocusZoom-like plots. Three example 
 
 This script has one package dependency: `scales`
 
-  - Example.assoc.linear: A file of PLINK association results (only the "CHR", "SNP", "BP", and "P" columns are essential)
-  - Example.ld: A file of the LD between the SNP to be labelled (top-hit / SNP of interest) and the SNPs included in the PLINK results file
+### LocusZoom Requirements
+
+  - Logistic Association: A file of PLINK association results (only the "CHR", "SNP", "BP", and "P" columns are essential)
+  - Linkage Disequillibrium: A file of the LD between the SNP to be labelled (top-hit / SNP of interest) and the SNPs included in the PLINK results file
     - this file MUST have a column called "SNP_B" (containing a list of all the SNPs in the results file) and a column called "R2" (containing the R^2 LD value of each SNP). The SNP names MUST match the names in the SNP column of the results file.
-  - Example.genes: A file of the genes within the region for use in the annotation step. This file must have five columns, "Gene", "Chrom", "Start", "End", and "Coding". The `{Gencode,UCSC}_GRCh37_Genes_UniqueList{2017,2021}.txt` files can be used for this file.
+  - Gene List: A file of the genes within the region for use in the annotation step. This file must have five columns, "Gene", "Chrom", "Start", "End", and "Coding". The `Pfalciparum_gene_list.txt` file in the `genelist` folder can be used for this file.
+
+### Generating Requirements
+
+  - Logistic Assocation: Files in the `Phenotypes` folder can be used for your LocusZoom runs. If you wish to generate your own, see requirements above.
+  - Linkage Disequillibrium: You will generate your own LD file for each run of LocusZoom based on what SNP you are measuring the LD of. Use the file `extractLD_bfile.sh` within the `functions` to generate the LD file.
+  - Gene List: A Plasmodium falciparum gene list `Pfalciparum_gene_list.txt` is provided in the `genelist` folder. If you wish to generate your own from a P. falciparum (.gff) file, use `GetGeneList.py`, also present in the `genelist` folder.
 
 ### Example locus.zoom run:
 
