@@ -1,322 +1,455 @@
-######################
-# Locus Zoom, Make LD Data
-# July 2020
-# Tanya Major & Riku Takei
-# Uni of Otago
+# Locus Zoom for Plasmodium falciparum
+# Adapted from Tanya Major & Riku Takei's original code
+# Modified for Plasmodium falciparum by Gabe, Belinda and Kashif
+# April 2026 - FINAL VERSION
 
-#### Important Running Notes: ####
-
-### Compulsory flags:
-
-## One of snp, gene, or region must be specified to create the plot:
-# snp: specify the SNP to be annotated (you must also include ignore.lead = TRUE if choosing this option)
-# gene: specify the Gene to make the plot around
-# region: specify the chromsome region you want to plot (must be specified as c(chr, start, end)
-
-## As well as each of the following:
-# data: specify the data.frame (or a list of data.frames) to be used in the plot (requires the columns "CHR", "BP", "SNP", and either "P" or "logBF")
-# genes.data: specify a data.frame with gene locations to plot beneath the graph (requires the columns "Gene", "Chrom", "Start", "End", and "Coding") # the Gencode or UCSC {Gencode,UCSC}_GRCh37_Genes_UniqueList{2017,2021}.txt files in this repo can be used for this
-# plot.title: specify a title to go above your plot
-# file.name: specify a filename for your plot to be saved to
-
-### Optional flags:
-
-# ld.file: specify a data.frame with LD values relevant to the SNP specified by snp (requires the columns "SNP_B" and "R2") 
-# offset_bp: specify how far either side of the snp, gene, or region you want the plot to extend (defaults to 200000)
-# psuedogenes: when using one of the three gene lists in this repo you can specify whether you want to plot the pseudogenes (defaults to FALSE)
-# RNAs: when using one of the two gene lists created in 2021 in this repo you can specify whether you want to plot lncRNA and ncRNA genes (defaults to FALSE)
-# plot.type: specify the file format of the plot (defaults to "jpg", options are "jpg", "svg", or "view_only" which will not save the plot, but output it to RStudio Viewer instead)
-# nominal: specify the nominal significance level to draw on the plot (in -log10(_P_), default is 6 or _P_ = 1e-6)
-# significant: specify the significance level to draw on the plot (in -log10(_P_), default is 7.3 or _P_ = 5e-8) 
-# secondary.snp: provide the list of secondary SNP IDs (must match IDs in results file) to be highlighted on the plot
-# secondary.label: specify whether to label the secondary SNPs on the plot (defaults to FALSE)
-# secondary.circle: specify whether to add a red circle around the secondary SNPs on the plot (defaults to TRUE)
-# genes.pvalue: specify a data.frame of p-values (e.g. MAGMA results) associated with each gene (requires the columns "Gene" and "P") 
-# colour.genes: specify whether to colour genes based on a p-value provided in gene.pvalue (defaults to FALSE)
-# population: specify the 1000 genomes population to use when calculating LD if ld.file = NULL (defaults to "EUR", options are "AFR", "AMR", "EAS", "EUR", "SAS", "TAMA", and "ALL")
-# sig.type: specify whether the y-axis should be labelled as -log10(_P_) or log10(BF) (defaults to "P", options are "P", "logP", or "logBF"). For the "P" option an additional -log10 conversion of the input "P" column will be performed.
-# nplots: specify whether multiple results plots will be saved into your jpeg file (e.g. plot two GWAS results one above another; defaults to FALSE)
-# ignore.lead: specify whether to ignore the SNP with the smallest P and use the SNP specified by 'snp' to centre the plot (defaults to FALSE)
-# rsid.check: specify whether to check if the SNPs are labelled with rsIDs # should only matter if script is calculating LD for you (defaults to TRUE)
-# nonhuman: specify whether the data to plot has come from a non-human sample-set (defaults to FALSE) # if the data going in is from a non-human species make sure the chromosome column is only numbers (e.g. 1 instead of chr1, 23 instead of X). 
-                                                           
-#####GABE: Writing this so I can track and understand the code
-##### starts by making a function with all of these variables set to NULL or FALSE or TRUE. Based on the data being plotted, the function will set these variables to different things
-##### user must have R scales packages downloaded
-##### will set lead.data to the data (maybe as a copy of the OG data?)
-##### checks that data has necessary column headers that locuszoom uses to call
-##### checks that SNPs are in proper format
-##### converts chr1 to just the number 1
-##### uses chr, start, end, and gene, with the get region function(common package in R) so I THINK that by setting these regions, it will pull all the genes in that region. This also may be outdated, we will see when we test. (Updated function = get_region())
-##### redefines the region? honestly not sure why it would need to do this or what this is specifically for
-##### if the position of a gene falls on OR in (+ or -) the defined region, that gene will be included
-##### deletes pseudogenes and RNA info from the data based on the region. We will likely delete OR edit this so that it deletes other information in our data files that we dont need
-##### by pulling out the p-value of the genes, they can showcase how significant each gene is
-##### pullout the data only pertaining to the region, then set each data point to the same logBF format for plotting
-##### pulls out stats for lead variant, but how is the lead variant found already? im assuming that during the logBF formatting, the code maybe puts each variant in descending order based on logBF value, so the lead variant will be the first one/will have highest association with SNP and phenotype
-##### calculate LD from 1000 genomes data if ld is not supplied (we will delete this part)
-##### merge ld with data dataframe so that you can parse both while plotting
-##### plot:
-
-## LD Colours
-# 1.0 - 0.9 = #FF0000
-# 0.9 - 0.8 = #EEEE00
-# 0.8 - 0.7 = #FFA500
-# 0.7 - 0.6 = #FFC1C1
-# 0.6 - 0.5 = #00FF00
-# 0.5 - 0.4 = #8B5742
-# 0.4 - 0.3 = #87CEFA
-# 0.3 - 0.2 = #CD6090
-# 0.2 - 0.1 = #BF3EFF
-# 0.1 - 0.0 = #000080
-# NA = #7F7F7F
-# top-hit = #7D26CD
-
-## Gene Colours
-# <1e-15 = #FF0000
-# ≥1e-15, <1e-10 = #FFA500
-# ≥1e-10, <1e-5 = #00FF00
-# ≥1e-5, <0.05 = #87CEFA
-# ≥0.05 = #000080
-# NA = #7F7F7F
-
-#### Function to make LocusZoom like plots ####
-locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, ld.file = NULL, offset_bp = 200000, genes.data = NULL, psuedogenes = FALSE, RNAs = FALSE, plot.title = NULL, plot.type = "jpg", nominal = 6, significant = 7.3, file.name = NULL, secondary.snp = NA, secondary.label = FALSE, secondary.circle = TRUE, genes.pvalue = NULL, colour.genes = FALSE, population = "EUR", sig.type = "P", nplots = FALSE, ignore.lead = FALSE, rsid.check = TRUE, nonhuman = FALSE) {
-  ###will need to change rsID check 
-  # Define constants:
-  #OLD LD.colours <- data.frame(LD = as.character(seq(from = 0, to = 1, by = 0.1)), Colour = c("#000080",rep(c("#000080", "#87CEFA", "#00FF00", "#FFA500", "#FF0000"), each = 2)), stringsAsFactors = FALSE)
-  LD.colours <- data.frame(LD = as.character(seq(from=0, to =1, by = 0.1)), Colour = c("#000080",rep(c('#000080', "#BF3EFF", "#CD6090", "#87CEFA","#8B5742", "#00FF00","#FFC1C1", "#FFA500", "#EEEE00" "#FF0000"), each = 1)), stringsAsFactors = FALSE)
-  GENE.colours <- data.frame(Threshold = c(">2.6e-6", ">1e-10", ">1e-15", ">1e-20", "<1e-20"), Colour = c("#000080", "#87CEFA", "#00FF00", "#FFA500", "#FF0000"), stringsAsFactors = FALSE)
- # load scales library
+#### Function to make LocusZoom like plots for P. falciparum ####
+locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA, 
+                       ld.file = NULL, offset_bp = 50000, 
+                       genes.data = NULL, psuedogenes = FALSE, 
+                       RNAs = FALSE, plot.title = NULL, 
+                       plot.type = "jpg", nominal = 3, 
+                       significant = 4, 
+                       file.name = NULL, secondary.snp = NA, 
+                       secondary.label = FALSE, secondary.circle = TRUE, 
+                       genes.pvalue = NULL, colour.genes = FALSE, 
+                       sig.type = "P", 
+                       nplots = FALSE, ignore.lead = FALSE, 
+                       rsid.check = FALSE, nonhuman = TRUE) {
+  
+  # Load scales library
   if("scales" %in% data.frame(installed.packages())[, "Package"]){
     library("scales")
   } else{
-    stop("This function requires the package 'scales' to run.\nUse install.packages('scales') to install the package before running this code again.")
+    stop("This function requires the package 'scales' to run.")
   }
   
+  # Helper function to convert P. falciparum chromosome names
+  convert_pf_chr <- function(chr) {
+    chr <- as.character(chr)
+    if(grepl("Pf3D7_", chr)) {
+      num <- gsub("Pf3D7_0*(\\d+)_.*", "\\1", chr)
+      return(as.character(as.numeric(num)))
+    } else if(grepl("^0", chr)) {
+      return(as.character(as.numeric(chr)))
+    }
+    return(chr)
+  }
+  
+  # Helper function to extract position from SNP name
+  extract_position <- function(snp_name) {
+    as.numeric(gsub(".*:", "", snp_name))
+  }
   
   # Load Data
-  # If plotting multiple summary stats, take the first summary stats as lead/reference data:
   if (is.data.frame(data)) {
     lead.data = data
   } else {
     lead.data = data[[1]]
   }
   
-  # Error check data header
-  if(sig.type == "P") {
-    if(!all(c("CHR", "BP", "SNP", "P") %in% names(lead.data))){
-      stop("Your data file does not contain a CHR, BP, SNP, or P column.\nCheck your header line.")
-    }
-  } else if(sig.type == "logP") {
-    if(!all(c("CHR", "BP", "SNP", "logP") %in% names(lead.data))){
-      stop("Your data file does not contain a CHR, BP, SNP, or logP column.\nCheck your header line.")
-    }
-  } else if(sig.type == "logBF") {
-    if(!all(c("CHR", "BP", "SNP", "logBF") %in% names(lead.data))){
-      stop("Your data file does not contain a CHR, BP, SNP, or logBF column.\nCheck your header line.")
-    }
-  } else {
-      stop("Unrecognised significance type. The options are P, logP, or logBF.")
+  # Clean column names
+  names(lead.data) <- gsub("^#", "", names(lead.data))
+  names(lead.data) <- gsub("\\.", "", names(lead.data))
+  
+  # Map column names
+  if("CHROM" %in% names(lead.data)) names(lead.data)[names(lead.data) == "CHROM"] <- "CHR"
+  if("POS" %in% names(lead.data)) names(lead.data)[names(lead.data) == "POS"] <- "BP"
+  if("ID" %in% names(lead.data)) names(lead.data)[names(lead.data) == "ID"] <- "SNP"
+  
+  # Error check
+  if(!all(c("CHR", "BP", "SNP", "P") %in% names(lead.data))){
+    stop(paste("Data must contain CHR, BP, SNP, and P columns.\n",
+               "Available:", paste(names(lead.data), collapse=", ")))
   }
-
+  
   lead.data$SNP = as.character(lead.data$SNP)
+  lead.data$CHR <- sapply(lead.data$CHR, convert_pf_chr)
+  lead.data$BP <- as.numeric(lead.data$BP)
+  lead.data$P <- as.numeric(lead.data$P)
+  lead.data$P[lead.data$P == 0 | is.na(lead.data$P)] <- .Machine$double.xmin
+  lead.data$logP <- -log10(lead.data$P)
   
-  # Check the SNPs are in rsID format and no duplicates:
-  if (rsid.check) {
-    check.rsid(lead.data$SNP)
-  }
-  #########################################what format are PF SNPs in? need to change this based on the ...
-  # Check gene data header
-  if(!all(c("Chrom", "Start", "End", "Coding") %in% names(genes.data))){
-    stop("Your genes.data file does not contain a Chrom, Start, End, or Coding column.\nCheck your header line.")
-  }
-  
-  # convert 'chr1' to '1' 
-  if(!nonhuman){ #######################we have two options: edit the original gene list py script to generate the gene list chrom columns as pf3d7 numbers and DELETE THIS, or we can leave it as is and reframe this so that it changes all PF3D7_1 to just 1
-    if(!(class(genes.data$Chrom) %in% c("integer", "numeric"))){
-      genes.data$Chrom <- gsub(genes.data$Chrom, pattern = "chr", replacement = "")
-      genes.data$Chrom[genes.data$Chrom == "X"] <- 23
-      genes.data$Chrom[genes.data$Chrom == "Y"] <- 24
-      genes.data$Chrom[genes.data$Chrom %in% c("M", "MT")] <- 26
-      genes.data$Chrom <- as.numeric(genes.data$Chrom)
+  # Check gene data
+  if(!is.null(genes.data)) {
+    if(!all(c("Gene", "Chrom", "Start", "End") %in% names(genes.data))){
+      stop("Genes data must contain Gene, Chrom, Start, and End columns")
+    }
+    genes.data$Chrom <- sapply(genes.data$Chrom, convert_pf_chr)
+    genes.data$Start <- as.numeric(genes.data$Start)
+    genes.data$End <- as.numeric(genes.data$End)
+    if("Coding" %in% names(genes.data)) {
+      genes.data$Coding <- as.character(genes.data$Coding)
     }
   }
-############################################################################################## does this need to be changed to match p falciparum chromosomes?
-#based on what we specify in the data file, this data file comes from runing locus.zoom function in R. Specify data file in the function via data = associationfile
-
-  # Get start and end regions for plotting and for pulling out data:
+  
+  # Get initial region from SNP or gene
   if (all(is.na(region))) {
     region = get.region(lead.data, snp, genes.data, gene) 
-  } else {
-    offset_bp = ifelse(is.na(offset_bp), 0, offset_bp)
   }
   
-  # Now re-define region to work with:
-  region[2] = region[2] - offset_bp # start position
-  region[3] = region[3] + offset_bp # end position
-  
-  ## Pull out the relevant information from the gene data.
-
-  # Any gene that overlaps/intersect with the defined region is included:
-  genes.data = genes.data[genes.data$Chrom == region[1], ]
-  genes.data = genes.data[genes.data$End > region[2], ]
-  genes.data = genes.data[genes.data$Start < region[3], ]
-  
-  # Remove psuedogenes & RNA Info:
-  if(!psuedogenes) { ##DELETE
-    genes.data = genes.data[!(genes.data$Coding %in% c("psuedogene", "Non-Coding")), ]
-  }
-  
-  if(!RNAs) { ##DELETE
-    genes.data = genes.data[!(genes.data$Coding %in% c("lncRNA", "ncRNA")), ]
-  } #might need change this, but also could leave it since its an if statement############################################
-  
-  # Pull out the relevant information from the gene p-values data
-  if(colour.genes) { ##DELETE
-    if(!all(c("Gene", "P") %in% names(genes.pvalue))){
-      stop("Your genes.pvalue file does not contain a Gene or P column.\nCheck your file header.")
+  # Extract lead SNP info given by the user
+  if (!is.na(snp)) {
+    if(grepl("Pf3D7_", snp)) {
+      snp_parts <- strsplit(snp, ":")[[1]]
+      snp_chr_num <- gsub("Pf3D7_0*(\\d+)_.*", "\\1", snp_parts[1])
+      snp_pos <- as.numeric(snp_parts[2])
+      user_lead_snp <- snp
+      user_lead_pos <- snp_pos
+      user_lead_chr <- as.character(snp_chr_num)
+    } else if(grepl(":", snp)) {
+      snp_parts <- strsplit(snp, ":")[[1]]
+      user_lead_snp <- snp
+      user_lead_pos <- as.numeric(snp_parts[2])
+      user_lead_chr <- as.character(snp_parts[1])
+    } else {
+      user_lead_snp <- snp
+      snp_ind <- which(lead.data$SNP == snp)
+      if(length(snp_ind) > 0) {
+        user_lead_pos <- lead.data$BP[snp_ind[1]]
+        user_lead_chr <- as.character(lead.data$CHR[snp_ind[1]])
+      } else {
+        user_lead_pos <- as.numeric(region[2])
+        user_lead_chr <- as.character(region[1])
+      }
     }
-    genes.pvalue = genes.pvalue[genes.pvalue$Gene %in% genes.data$Gene, ]
+  } else {
+    user_lead_snp <- NA
+    user_lead_pos <- as.numeric(region[2])
+    user_lead_chr <- as.character(region[1])
   }
+  
+  lead_chr_temp = user_lead_chr
+  lead_pos_temp = user_lead_pos
+  
+  cat("\n=== INITIAL REGION ===\n")
+  cat("Lead SNP:", user_lead_snp, "\n")
+  cat("Position:", lead_pos_temp, "\n")
+  cat("User-provided offset:", offset_bp, "bp\n")
+  
+  # AUTO-ADJUST OFFSET BASED ON LD FILE
+  adjusted_offset <- offset_bp
+  
+  if (!is.null(ld.file) && nrow(ld.file) > 0) {
+    cat("\n=== ANALYZING LD FILE ===\n")
     
-  # Pull out the relevant data from the result file(s), and logBF/log p-value:
-  if (is.data.frame(data)) {
-    data = subset.data(data, region)
-    if (sig.type == "P") {
-      data$logP = as.numeric(unlist(lapply(data$P, elog10)))
-    } else if (sig.type == "logBF") {
-      data$logP = data$logBF
+    snp_b_col <- grep("SNP_B$", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
+    if(is.na(snp_b_col)) {
+      snp_b_col <- grep("SNP_B|SNP2", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
     }
-    lead.data = data
-  } else {
-    data = lapply(data, function(x) subset.data(x, region))
-    lead.data = data[[1]]
-  }
-####################################################################################BASE THIS ON MONO FILES?
-  # Get info on lead variant:
-  if (ignore.lead) {
-    if (is.na(snp)) {
-      stop("You must provide a SNP with the ignore.lead = TRUE option")
+    
+    if(!is.na(snp_b_col)) {
+      ld_positions <- extract_position(ld.file[[snp_b_col]])
+      min_ld_pos <- min(ld_positions, na.rm = TRUE)
+      max_ld_pos <- max(ld_positions, na.rm = TRUE)
+      
+      needed_left_offset <- lead_pos_temp - min_ld_pos
+      needed_right_offset <- max_ld_pos - lead_pos_temp
+      needed_offset <- max(needed_left_offset, needed_right_offset)
+      
+      if(needed_offset > offset_bp) {
+        adjusted_offset <- ceiling(needed_offset * 1.1)
+        cat("Offset increased to:", adjusted_offset, "bp to capture all LD SNPs\n")
+      } else {
+        cat("Current offset sufficient to capture all LD SNPs\n")
+      }
     }
-    lead.ind = which(lead.data$SNP == snp)
-    if(length(lead.ind) == 0){
-      stop(paste0("Your SNP (", snp, ") is not present in your data."))
+  }
+  
+  # Define region with adjusted offset
+  region_start = lead_pos_temp - adjusted_offset
+  region_end = lead_pos_temp + adjusted_offset
+  region_chr = lead_chr_temp
+  
+  # Filter genes to region
+  if(!is.null(genes.data)) {
+    genes.data = genes.data[genes.data$Chrom == region_chr, ]
+    genes.data = genes.data[genes.data$End > region_start, ]
+    genes.data = genes.data[genes.data$Start < region_end, ]
+    
+    if(!psuedogenes && "Coding" %in% names(genes.data)) {
+      genes.data = genes.data[!(genes.data$Coding %in% c("pseudogene", "Non-Coding")), ]
+    }
+    if(!RNAs && "Coding" %in% names(genes.data)) {
+      genes.data = genes.data[!(genes.data$Coding %in% c("lncRNA", "ncRNA")), ]
+    }
+  }
+  
+  # Subset data to region
+  data = subset.data(lead.data, region_chr, region_start, region_end)
+  data$logP <- -log10(data$P)
+  
+  if(nrow(data) == 0) {
+    stop(paste("No SNPs found in region", region_chr, ":", region_start, "-", region_end))
+  }
+  
+  cat("\n=== GWAS DATA IN REGION ===\n")
+  cat("Total SNPs in region:", nrow(data), "\n")
+  
+  # Get lead variant - USE USER-SPECIFIED SNP
+  if (!is.na(snp)) {
+    lead.ind = which(data$SNP == user_lead_snp)
+    if(length(lead.ind) == 0) {
+      lead.ind = which.min(abs(data$BP - user_lead_pos))
+      cat("Using closest SNP at position", data$BP[lead.ind], "as lead\n")
     }
   } else {
-    lead.ind = which(lead.data$logP %in% max(lead.data$logP, na.rm = TRUE))[1]
+    lead.ind = which(data$logP %in% max(data$logP, na.rm = TRUE))[1]
   }
   
-  lead.snp = lead.data$SNP[lead.ind]
-  lead.chr = lead.data$CHR[lead.ind]
-  lead.pos = lead.data$BP[lead.ind]
-  lead.logp = lead.data$logP[lead.ind]
-  
-  # If LD information is not supplied, calculate it from the 1000 genomes data:
-  if (is.null(ld.file)) {
-    ld.file = get.ld(region, lead.snp, population)
+  if(length(lead.ind) == 0) {
+    lead.ind = 1
   }
-############################################################################this can be taken out, LD data should always be supplied here and defaulting to 1000 genomes would break pf lz
-  # Add LD to Results
-  new.ld.file = ld.file[, c("SNP_B", "R2")]
   
-  if (is.data.frame(data)) {
-    data.plot = merge.plot.dat(data, new.ld.file, LD.colours)
+  lead.snp = data$SNP[lead.ind]
+  lead.chr = as.character(data$CHR[lead.ind])
+  lead.pos = data$BP[lead.ind]
+  lead.logp = data$logP[lead.ind]
+  
+  cat("\n=== LEAD SNP FOR PLOTTING ===\n")
+  cat("Lead SNP:", lead.snp, "\n")
+  cat("Position:", lead.pos, "\n")
+  cat("-log10(P):", round(lead.logp, 2), "\n")
+  
+  # PROCESS LD FILE
+  if (!is.null(ld.file) && nrow(ld.file) > 0) {
+    
+    cat("\n=== LD FILE PROCESSING ===\n")
+    
+    r2_col <- grep("^R2$", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
+    if(is.na(r2_col)) {
+      r2_col <- grep("R2|R_SQ", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
+    }
+    
+    snp_b_col <- grep("SNP_B$", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
+    if(is.na(snp_b_col)) {
+      snp_b_col <- grep("SNP_B|SNP2", names(ld.file), ignore.case = TRUE, value = TRUE)[1]
+    }
+    
+    if(!is.na(r2_col) && !is.na(snp_b_col)) {
+      
+      ld_data <- ld.file[, c(snp_b_col, r2_col)]
+      names(ld_data) <- c("SNP", "R2")
+      ld_data$R2 <- as.numeric(as.character(ld_data$R2))
+      ld_data$R2[is.na(ld_data$R2)] <- 0
+      
+      ld_data <- ld_data[order(ld_data$R2, decreasing = TRUE), ]
+      ld_data <- ld_data[!duplicated(ld_data$SNP), ]
+      
+      if(!lead.snp %in% ld_data$SNP) {
+        ld_data <- rbind(ld_data, data.frame(SNP = lead.snp, R2 = 1))
+      }
+      
+      cat("Total SNPs in LD file:", nrow(ld_data), "\n")
+      
+      # PRINT SUMMARY OF LD SNPs
+      cat("\n=== LD SNPs SUMMARY ===\n")
+      cat(sprintf("%-30s %10s %12s\n", "SNP", "Position", "R2"))
+      cat(rep("-", 55), "\n", sep="")
+      
+      ld_data_sorted <- ld_data[order(extract_position(ld_data$SNP)), ]
+      for(i in 1:nrow(ld_data_sorted)) {
+        pos <- extract_position(ld_data_sorted$SNP[i])
+        r2 <- ld_data_sorted$R2[i]
+        cat(sprintf("%-30s %10d %12.6f\n", ld_data_sorted$SNP[i], pos, r2))
+      }
+      cat(rep("-", 55), "\n", sep="")
+      
+      # Get unique R2 values
+      unique_r2 <- sort(unique(ld_data$R2))
+      n_unique <- length(unique_r2)
+      
+      # Create color palette
+      if(n_unique == 1) {
+        exact_colors <- "#B2182B"
+      } else {
+        exact_colors <- colorRampPalette(c(
+          "#2166AC", "#d56bb7ae", "#67A9CF", "#d6bf25", "#D1E5F0",
+          "#adcf16", "#F4A582", "#D6604D", "#09a40e", "#0e0e0e"
+        ))(n_unique)
+      }
+      
+      color_map <- setNames(exact_colors, as.character(sort(unique_r2)))
+      
+      LD.colours <- data.frame(
+        R2_value = sort(unique_r2),
+        Colour = exact_colors,
+        stringsAsFactors = FALSE
+      )
+      
+      data.plot <- merge(data, ld_data, by = "SNP", all.x = TRUE)
+      
+      data.plot$Colour <- sapply(1:nrow(data.plot), function(i) {
+        r2 <- data.plot$R2[i]
+        if(is.na(r2)) {
+          return("#D3D3D3")
+        } else {
+          r2_char <- as.character(r2)
+          if(r2_char %in% names(color_map)) {
+            return(color_map[r2_char])
+          } else {
+            closest_idx <- which.min(abs(unique_r2 - r2))
+            return(exact_colors[closest_idx])
+          }
+        }
+      })
+      
+      data.plot$has_ld <- !is.na(data.plot$R2)
+      
+      cat("\n=== COLOR ASSIGNMENT ===\n")
+      cat("SNPs with LD colors:", sum(data.plot$has_ld), "\n")
+      cat("SNPs without LD (gray):", sum(!data.plot$has_ld), "\n")
+      
+    } else {
+      data.plot = data
+      data.plot$Colour = "#D3D3D3"
+      data.plot$has_ld = FALSE
+      LD.colours <- data.frame(R2_value = 0, Colour = "#D3D3D3")
+    }
   } else {
-    data.plot = lapply(data, function(x) merge.plot.dat(x, new.ld.file, LD.colours))
+    data.plot = data
+    data.plot$Colour = "#D3D3D3"
+    data.plot$has_ld = FALSE
+    LD.colours <- data.frame(R2_value = 0, Colour = "#D3D3D3")
   }
   
-### Make Plot ###
+  # Mark lead SNP
+  data.plot$is_lead <- (data.plot$SNP == lead.snp)
   
-  # Define output plot size
+  # Reorder for plotting (gray first, then colored, then lead on top)
+  gray_snps <- data.plot[!data.plot$has_ld & !data.plot$is_lead, ]
+  colored_snps <- data.plot[data.plot$has_ld & !data.plot$is_lead, ]
+  lead_snp_row <- data.plot[data.plot$is_lead, ]
+  
+  gray_snps <- gray_snps[order(gray_snps$BP), ]
+  colored_snps <- colored_snps[order(colored_snps$BP), ]
+  
+  data.plot <- rbind(gray_snps, colored_snps, lead_snp_row)
+  
+  ### Make Plot ###
   npanel = ifelse(nplots, length(data), 1)
   plot.height = (npanel * 80) + 50
+  
   if(plot.type == "jpg"){
-    jpeg(width = 160, height = plot.height, units = "mm", res = 300, filename = file.name)
+    jpeg(width = 200, height = plot.height, units = "mm", res = 300, filename = file.name)
+  } else if(plot.type == "png") {
+    png(width = 200, height = plot.height, units = "mm", res = 300, filename = file.name)
   } else if(plot.type == "svg") {
-    svg(width = (160 / 25.4), height = (plot.height / 25.4), filename = file.name)
+    svg(width = (200 / 25.4), height = (plot.height / 25.4), filename = file.name)
+  } else if(plot.type == "pdf") {
+    pdf(file.name, width = 200/25.4, height = plot.height/25.4)
   } else if(plot.type != "view_only"){
-    stop("Unrecognised plot type. The options are jpg, png, or view_only.")
+    stop("Plot type must be jpg, png, svg, pdf, or view_only")
   }
-###########################################################################################we shouldnt have to change much here, since it should read in the same data format
+  
   mat.row = (2 * npanel) + 1
-  locus.par = c(4, 20)
+  locus.par = c(4, 15)
   layout(matrix(c(1:mat.row), byrow = TRUE), heights = c(rep(locus.par, npanel), 10))
   
-  # Make Plotting Variables
-  x.min = region[2]
-  x.max = region[3]
+  x.min = region_start
+  x.max = region_end
   
-  # Plot N locus zooms
+  # Create locus plot
   if (npanel > 1) {
     for (i in 1:npanel) {
-      # Set y.max:
       tmp.dat = data.plot[[i]]
-      y.max = max(tmp.dat$logP, 8)
+      y.max = max(tmp.dat$logP, 8, na.rm = TRUE)
       plot.var = c(y.max, x.min, x.max, lead.snp, nominal, significant)
-      plot.locus(data.plot = tmp.dat, plot.title = names(data.plot)[i], secondary.snp = secondary.snp, secondary.label = secondary.label, secondary.circle = secondary.circle, sig.type = sig.type, plot.var = plot.var)
+      plot.locus(data.plot = tmp.dat, plot.title = names(data.plot)[i], 
+                 secondary.snp = secondary.snp, secondary.label = secondary.label, 
+                 secondary.circle = secondary.circle, sig.type = sig.type, plot.var = plot.var,
+                 ld.colours = LD.colours)
       rm(tmp.dat)
     }
   } else {
-    y.max = max(data.plot$logP, 8)
+    y.max = max(data.plot$logP, 8, na.rm = TRUE)
     plot.var = c(y.max, x.min, x.max, lead.snp, nominal, significant)
-    plot.locus(data.plot = data.plot, plot.title = plot.title, secondary.snp = secondary.snp, secondary.label = secondary.label, secondary.circle = secondary.circle, sig.type = sig.type, plot.var = plot.var)
+    plot.locus(data.plot = data.plot, plot.title = plot.title, 
+               secondary.snp = secondary.snp, secondary.label = secondary.label, 
+               secondary.circle = secondary.circle, sig.type = sig.type, plot.var = plot.var,
+               ld.colours = LD.colours)
   }
   
   # Plot Gene tracks
   par(mar = c(4, 4, 0.5, 8), mgp = c(2, 1, 0), xpd = FALSE)
-  if(length(genes.data[, "Gene"]) > 15){
-    track.max = 6
-    font.size = 0.45
-  } else{
-    track.max = 3
-    font.size = 0.6
-  }
-  plot(1, type = "n", yaxt = "n", xlab = paste("Position on Chromosome", lead.chr), ylab="", xlim = c(x.min, x.max), ylim = c(0, track.max), xaxt = "n")
-  x_marks = axTicks(side = 1)
-  axis(side = 1, at = x_marks, labels = format(x_marks, scientific = FALSE, big.mark = ",", trim = TRUE))
-
-  if (nrow(genes.data) != 0) {
-                       
-  # add colour column to genes.data
-  if(colour.genes) {
-    genes.data = merge.gene.colour(genes.data, genes.pvalue, GENE.colours)
+  
+  n_genes <- ifelse(is.null(genes.data), 0, nrow(genes.data))
+  if(n_genes > 20) {
+    track.max = 5
+    font.size = 0.55
+  } else if(n_genes > 10) {
+    track.max = 4
+    font.size = 0.65
   } else {
-    genes.data$Colour = "#7F7F7F"
+    track.max = 3
+    font.size = 0.75
   }
   
-  # Stagger the genes
-    if(length(genes.data[, "Gene"]) > 15){
-      y = rep(c(5, 2, 3, 4, 1), times = length(genes.data[ ,"Gene"]))
-      genes.data$Y = y[1:length(genes.data$Gene)]
-    } else{
-      y = rep(c(2.5, 1.5, 0.5), times = length(genes.data[ ,"Gene"]))
-      genes.data$Y = y[1:length(genes.data$Gene)]
-    }
-    # Plot the gene tracks:
-    for(track in unique(genes.data$Y)){
-      genes.set <- genes.data[genes.data$Y == track, ]
-      if (nrow(genes.set) > 0) {
-        gene.position(genes.set, fontsize = font.size, plot.var = plot.var)
+  plot(1, type = "n", yaxt = "n", 
+       xlab = paste("Position on Chromosome", lead.chr, "(bp)"), 
+       ylab = "", xlim = c(x.min, x.max), ylim = c(0, track.max), 
+       xaxt = "n", cex.lab = 1)
+  
+  x_marks = axTicks(side = 1)
+  axis(side = 1, at = x_marks, 
+       labels = format(x_marks, scientific = FALSE, big.mark = ",", trim = TRUE),
+       cex.axis = 0.8)
+  
+  if(!is.null(genes.data) && nrow(genes.data) != 0) {
+    
+    if(colour.genes && !is.null(genes.pvalue)) {
+      if(!all(c("Gene", "P") %in% names(genes.pvalue))){
+        stop("genes.pvalue must contain Gene and P columns")
       }
+      genes.pvalue = genes.pvalue[genes.pvalue$Gene %in% genes.data$Gene, ]
+      genes.data = merge.gene.colour(genes.data, genes.pvalue, GENE.colours)
+    } else {
+      genes.data$Colour = "#7F7F7F"
+    }
+    
+    if(n_genes > 20) {
+      y_positions = rep(c(4.5, 3.5, 2.5, 1.5, 0.5), length.out = n_genes)
+      genes.data$Y = y_positions
+    } else if(n_genes > 10) {
+      y_positions = rep(c(3.5, 2.5, 1.5, 0.5), length.out = n_genes)
+      genes.data$Y = y_positions
+    } else {
+      y_positions = rep(c(2.5, 1.5, 0.5), length.out = n_genes)
+      genes.data$Y = y_positions
+    }
+    
+    for (i in 1:nrow(genes.data)) {
+      rect(xleft = max(genes.data$Start[i], x.min), 
+           xright = min(genes.data$End[i], x.max),
+           ybottom = genes.data$Y[i] - 0.1, 
+           ytop = genes.data$Y[i] + 0.1,
+           col = alpha(genes.data$Colour[i], 0.6), 
+           border = "black", lwd = 0.8)
+      
+      mid_x = (max(genes.data$Start[i], x.min) + min(genes.data$End[i], x.max)) / 2
+      text(x = mid_x, 
+           y = genes.data$Y[i] + 0.25, 
+           labels = genes.data$Gene[i], 
+           font = 3, 
+           cex = font.size,
+           srt = 0,
+           adj = 0.5)
     }
   }
-
-  # add gene colour legend
-  if(colour.genes) {
-    legend.colour = c("#FF0000", "#FFA500", "#00FF00", "#87CEFA", "#000080", "#7F7F7F")
-    par(xpd = TRUE)
-    legend(x = "right", legend = c(expression("<1x10"^-20), expression(paste("<1x10"^-15, "; ≥1x10"^-20)), expression(paste("<1x10"^-10, "; ≥1x10"^-15)), expression(paste("<2.6x10"^-6, "; ≥1x10"^-10)), expression("≥2.6x10"^-6), "Unknown"), col = legend.colour, fill = legend.colour, border = legend.colour, pt.cex = 1.2, cex = 0.8, bg = "white", box.lwd = 0, title = "p-value", inset = -0.22)
-  }
-
+  
   if( plot.type != "view_only" ) {
     dev.off()
   }
+  
+  cat("\n=== PLOT COMPLETE ===\n")
+  cat("Plot saved to:", file.name, "\n")
 }
 
-#### Function to create LocusZoom style plot (without gene track): ####
-plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, secondary.label = FALSE, secondary.circle = TRUE, sig.type = "P", plot.var = NULL) {
-  # Variables:
+#### Function to create LocusZoom style plot  ####
+plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, 
+                       secondary.label = FALSE, secondary.circle = TRUE, 
+                       sig.type = "P", plot.var = NULL, ld.colours = NULL) {
+  
   y.max = as.numeric(plot.var[1])
   x.min = as.numeric(plot.var[2])
   x.max = as.numeric(plot.var[3])
@@ -324,340 +457,253 @@ plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, 
   nominal = as.numeric(plot.var[5])
   significant = as.numeric(plot.var[6])
   
-  # Plot SNP presence:
+  # Add 10% padding to y-axis
+  y_padding <- max(1, y.max * 0.1)
+  y_limit <- c(0, y.max + y_padding)
+  
+  # Plot SNP presence
   par(mar = c(0, 4, 2, 8), mgp = c(2, 1, 0), xpd = FALSE)
-  plot(x = data.plot$BP, y = rep(1, times = nrow(data.plot)), axes = FALSE, pch = "|", xlab = "", ylab = "Plotted\nSNPs", las = 2, xlim = c(x.min, x.max), cex.lab = 0.8, col = alpha(colour = "black", alpha = 0.2))
-  title(plot.title, line = 0)
+  plot(x = data.plot$BP, y = rep(1, times = nrow(data.plot)), axes = FALSE, 
+       pch = "|", xlab = "", ylab = "Plotted\nSNPs", las = 2, 
+       xlim = c(x.min, x.max), cex.lab = 0.7, cex.axis = 0.6, 
+       col = alpha(colour = "black", alpha = 0.15))
+  title(plot.title, line = 0, cex.main = 1)
   
-  # Plot Manhattan/LocusZoom of region ########################################################## this would be good to look at
+  # Plot Manhattan/LocusZoom (original style)
   par(mar = c(0, 4, 0, 8), mgp = c(2, 1, 0), xpd = FALSE)
-  ylab = ifelse(sig.type == "P" | sig.type == "logP", expression(-log[10](italic(P))), expression(log[10](BF)))
-  plot(x = data.plot$BP, y = data.plot$logP, ylim = c(0, y.max*1.1), pch = 20, col = as.character(data.plot$Colour), xlab = "", ylab = ylab, cex = 0.8, xaxt = "n", xlim = c(x.min, x.max))
-  abline(h = nominal, col = "blue", lty = "dashed")
-  abline(h = significant, col = "red", lty = "dashed")
+  ylab = expression(-log[10](italic(P)))
   
-  # Plot the lead SNP
+  # Plot all SNPs
+  plot(x = data.plot$BP, y = data.plot$logP, ylim = y_limit, 
+       pch = 19, col = alpha(as.character(data.plot$Colour), 0.8), 
+       xlab = "", ylab = ylab, cex = 1.2, xaxt = "n", 
+       xlim = c(x.min, x.max))
+  
+  # Draw significance lines 
+  abline(h = nominal, col = "blue", lty = "dashed", lwd = 1.5)
+  abline(h = significant, col = "red", lty = "dashed", lwd = 1.5)
+  
+  
+  
+  # Plot the lead SNP (purple diamond, larger and bold)
   if (lead.snp %in% data.plot$SNP) {
     ind = which(data.plot$SNP == lead.snp)
     lead.pos = data.plot$BP[ind]
     lead.logp = data.plot$logP[ind]
-    points(x = lead.pos, y = lead.logp, pch = 18, cex = 1.5, col = "#7D26CD")
-    text(x = lead.pos, y = lead.logp, labels = lead.snp, pos = 3)
+    points(x = lead.pos, y = lead.logp, pch = 18, cex = 2.5, col = "#9400D3", lwd = 2)
+    text(x = lead.pos, y = lead.logp + (y.max * 0.02), 
+         labels = lead.snp, pos = 3, cex = 0.7, font = 2)
   }
   
-  # Plot label/text for the secondary SNP (removes lead.snp from the list of secondary SNPs before plotting)
+  # Plot secondary SNPs if provided
   if(any(!is.na(secondary.snp))){
     secondary.snp <- secondary.snp[secondary.snp != lead.snp]
     check = which(data.plot$SNP %in% secondary.snp)
     if (length(check) != 0) {
       secondary.data = data.plot[data.plot$SNP %in% c(secondary.snp, lead.snp), ]
-      plot.secondary.point(data = secondary.data, snps = secondary.data$SNP, lead.snp = lead.snp, plot.data = data.plot, plot.var = plot.var, label = secondary.label, circle = secondary.circle)
+      plot.secondary.point(data = secondary.data, snps = secondary.data$SNP, 
+                          lead.snp = lead.snp, plot.data = data.plot, 
+                          plot.var = plot.var, label = secondary.label, 
+                          circle = secondary.circle)
     }
   }
   
-  # Add LD legend
-  legend.colour = c("#FF0000", "#EEEE00", "#FFA500", "FFC1C1", "#00FF00", "8B5742", "#87CEFA", "#CD6090", "#BF3EFF", "#000080", "#7F7F7F")
+  # Add CLEAN LEGEND 
   par(xpd = TRUE)
-  legend(x = "topright", legend = c("1.0", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "Unknown"), col = legend.colour, fill = legend.colour, border = legend.colour, pt.cex = 1.2, cex = 0.8, bg = "white", box.lwd = 0, title = expression("r"^2), inset = c(-0.14, 0.01))
-}
-
-##### Function to check if the input variants have rsIDs #### ###########DELETE
-check.rsid <- function(snp = NULL) {
-  # Stop if CHR:POS ID:
-  if (any(!grepl('rs', snp))) {
-    stop("Your SNP column does not have rsIDs")
-  }
-  # Stop if there are duplicate SNPs:
-  if (length(which(duplicated(snp))) > 0) {
-    stop("There are duplicate rsIDs in your results file - Please remove them before running again")
-  }
-}
-
-#### Function to make regions out of variant or gene information ####
-get.region <- function(snp.dat, snp, gene.dat, gene) {
-  # If SNP is given:
-  if (!is.na(snp)) {
-    snp.ind = which(snp.dat$SNP == snp)
+  
+  has_ld_colors <- !is.null(ld.colours) && nrow(ld.colours) > 1 && 
+                   any(data.plot$has_ld == TRUE, na.rm = TRUE)
+  
+  if(has_ld_colors) {
+    # Get R2 values for legend
+    r2_values <- ld.colours$R2_value[ld.colours$R2_value > 0]
+    r2_colors <- ld.colours$Colour[ld.colours$R2_value > 0]
+    n_r2 <- length(r2_values)
     
-    if(length(snp.ind) == 0){
-      stop(paste0("Your SNP (", snp, ") is not present in your data."))
+    # Format R2 labels nicely
+    format_r2 <- function(x) {
+      if(x < 0.0001) return(sprintf("%.2e", x))
+      if(x < 0.01) return(sprintf("%.4f", x))
+      if(x < 0.1) return(sprintf("%.3f", x))
+      if(x < 1) return(sprintf("%.3f", x))
+      return(sprintf("%.1f", x))
     }
     
-    snp.chr = snp.dat$CHR[snp.ind]
-    snp.pos = snp.dat$BP[snp.ind]
-    region = c(snp.chr, snp.pos, snp.pos)
-  } else if (!is.na(gene)) {
-  # If Gene is given
-    gene.ind = which(gene.dat$Gene == gene)
-    
-    if(length(gene.ind) == 0){
-      stop(paste0("Your gene (", gene, ") is not present in your data."))
+    # Select legend entries (max 10 for clean display)
+    if(n_r2 <= 10) {
+      legend_entries <- 1:n_r2
+      legend_cex <- 0.6
+      legend_ncol <- 1
+    } else {
+      legend_entries <- round(seq(1, n_r2, length.out = 10))
+      legend_cex <- 0.55
+      legend_ncol <- 1
     }
     
-    gene.chr = gene.dat$Chrom[gene.ind]
-    gene.start = gene.dat$Start[gene.ind]
-    gene.end = gene.dat$End[gene.ind]
-    region = c(gene.chr, gene.start, gene.end)
+    legend_colors <- r2_colors[legend_entries]
+    legend_labels <- sapply(r2_values[legend_entries], format_r2)
+    
+    # LD legend (top)
+    legend(x = "topright", 
+           legend = legend_labels, 
+           col = legend_colors, 
+           fill = legend_colors, 
+           border = legend_colors, 
+           pt.cex = 1, 
+           cex = legend_cex, 
+           bg = "white", 
+           box.lwd = 0.5, 
+           title = expression(bold(r^2)), 
+           ncol = legend_ncol,
+           inset = c(-0.12, 0))
+    
+    # Calculate position for next legend
+    legend_height <- length(legend_entries) * 0.12
+    legend_y_offset <- legend_height + 0.05
+    
+    # No LD data legend (middle)
+    legend(x = "topright",
+           legend = c("No LD data"),
+           col = c("#D3D3D3"),
+           fill = c("#D3D3D3"),
+           border = c("#D3D3D3"),
+           pt.cex = 1,
+           cex = 0.6,
+           bg = "white",
+           box.lwd = 0.5,
+           title = "",
+           inset = c(-0.12, legend_y_offset))
+    
+    # Lead SNP legend (bottom)
+    legend(x = "topright",
+           legend = c("Lead SNP"),
+           col = c("#9400D3"),
+           pch = c(18),
+           pt.cex = 1.5,
+           cex = 0.6,
+           bg = "white",
+           box.lwd = 0.5,
+           title = "",
+           inset = c(-0.12, legend_y_offset * 2))
+    
   } else {
-  # If nothing was given
-    stop("You must specify a SNP, Gene, or Region to plot")
+    # Simple legend when no LD data
+    legend(x = "topright",
+           legend = c("SNPs", "Lead SNP"),
+           col = c("#D3D3D3", "#9400D3"),
+           pch = c(19, 18),
+           pt.cex = c(1.2, 1.5),
+           cex = 0.65,
+           bg = "white",
+           box.lwd = 0.5,
+           title = "Legend",
+           inset = c(-0.12, 0))
+  }
+}
+
+#### Helper functions ####
+
+get.region <- function(snp.dat, snp, gene.dat, gene) {
+  if (!is.na(snp)) {
+    if(grepl("Pf3D7_", snp)) {
+      snp_parts <- strsplit(snp, ":")[[1]]
+      snp_chr_num <- gsub("Pf3D7_0*(\\d+)_.*", "\\1", snp_parts[1])
+      snp_pos <- as.numeric(snp_parts[2])
+      region = c(snp_chr_num, snp_pos, snp_pos)
+    } else if(grepl(":", snp)) {
+      snp_parts <- strsplit(snp, ":")[[1]]
+      region = c(snp_parts[1], as.numeric(snp_parts[2]), as.numeric(snp_parts[2]))
+    } else {
+      snp.ind = which(snp.dat$SNP == snp)
+      if(length(snp.ind) == 0){
+        stop(paste0("SNP ", snp, " not found"))
+      }
+      region = c(snp.dat$CHR[snp.ind], snp.dat$BP[snp.ind], snp.dat$BP[snp.ind])
+    }
+  } else if (!is.na(gene) && !is.null(gene.dat)) {
+    gene.ind = which(gene.dat$Gene == gene)
+    if(length(gene.ind) == 0){
+      stop(paste0("Gene ", gene, " not found"))
+    }
+    region = c(gene.dat$Chrom[gene.ind], gene.dat$Start[gene.ind], gene.dat$End[gene.ind])
+  } else {
+    stop("Must specify SNP or Gene")
   }
   return(region)
 }
 
-#### Function to subset relevant region from a dataset ####
-subset.data <- function(data, region) {
+subset.data <- function(data, chr, start, end) {
   res = data
-  res = res[res$CHR == region[1], ]
-  res = res[res$BP >= region[2], ]
-  res = res[res$BP <= region[3], ]
+  res = res[as.character(res$CHR) == as.character(chr), ]
+  res = res[res$BP >= start, ]
+  res = res[res$BP <= end, ]
   return(res)
 }
 
-round.up <- function(x, decimals = 1){
-  round(x + (5 * 10 ^ (-decimals - 1)), digits = decimals)
-}
-
-#### Function to merge the LD and LD colours with the relevant region of the summary stats: ####
-merge.plot.dat <- function(data, ld.file, LD.colours) {
-  # add LD to data.frame with p-values
-  res = merge(data, ld.file, by.x = "SNP", by.y = "SNP_B", all.x = TRUE)
-  # convert LD to categories
-  res$plot.ld = round.up(res$R2, decimals = 1)
-  res$plot.ld[res$plot.ld > 1 & !is.na(res$plot.ld)] = 1
-  # add plotting colours based on LD categories
-  res = merge(res, LD.colours, by.x = "plot.ld", by.y = "LD", all.x = TRUE)
-  # make all variants without an LD value grey
-  res$Colour[is.na(res$Colour)] = "#7F7F7F"
-  # sort file based on position, then on LD (so LD > 0.2 not hidden by other points)
-  res = res[order(res$BP), ]
-  plot.last <- res[res$plot.ld > 0.2 & !is.na(res$plot.ld), ]
-  res <- res[res$plot.ld <= 0.2 | is.na(res$plot.ld), ]
-  res <- rbind(res, plot.last)
-  rm(plot.last)
-  return(res)
-}
-
-#### Function to plot secondary SNPs: #### ################################################################### ??????what is the point and will we need this for pf
-plot.secondary.point <- function(data, snps, lead.snp, plot.data, plot.var, label = FALSE, circle = TRUE) {
+plot.secondary.point <- function(data, snps, lead.snp, plot.data, plot.var, 
+                                  label = FALSE, circle = TRUE) {
   
   lead.ind = which(data$SNP == lead.snp)
-  lead.pos = data$BP[lead.ind]
+  if(length(lead.ind) > 0) {
+    lead.pos = data$BP[lead.ind]
+  } else {
+    lead.pos = mean(as.numeric(plot.var[2:3]))
+  }
   
   data = data[which(data$SNP != lead.snp), ]
   data = data[data$BP >= as.numeric(plot.var[2]) & data$BP <= as.numeric(plot.var[3]), ]
   
-  
-  # plot red line around secondary SNP
-  if (circle) {
-    points(x = data$BP, y = data$logP, pch = 1, cex = 1.1, col = "#FF0000")
+  if (circle && nrow(data) > 0) {
+    points(x = data$BP, y = data$logP, pch = 1, cex = 1.8, col = "#FF0000", lwd = 1.5)
   }
   
-  # add SNP labels if requested
-  if (label) {
-    # set up labeling offsets (x-axis)
+  if (label && nrow(data) > 0) {
     x.min = as.numeric(plot.var[2])
     x.max = as.numeric(plot.var[3])
     x.offset = abs(x.max - x.min) / 150 * 15
     
     data$label.x.offset[data$BP < lead.pos] = data$BP[data$BP < lead.pos] - x.offset / 3
     data$side[data$BP < lead.pos] = 2
-    
     data$label.x.offset[data$BP >= lead.pos] = data$BP[data$BP >= lead.pos] + x.offset / 3
     data$side[data$BP >= lead.pos] = 4
-    
     data$label.y.offset = NA
-    for(snp in data$SNP){
-      ind = which(data$SNP == snp)
+    
+    for(s in data$SNP){
+      ind = which(data$SNP == s)
       pos = data$BP[ind]
-      
-      # set up labeling offsets (y-axis) - considers SNPs around it  
-      surrounding.data = plot.data[plot.data$BP > (pos - (abs(x.max - x.min) / 6)) & plot.data$BP < (pos + (abs(x.max - x.min) / 6)), ]
-      surrounding.data = surrounding.data[surrounding.data$logP > data$logP[ind] & surrounding.data$logP < data$logP[ind] + 5, ]
+      logp = data$logP[ind]
+      surrounding.data = plot.data[plot.data$BP > (pos - (abs(x.max - x.min) / 6)) & 
+                                   plot.data$BP < (pos + (abs(x.max - x.min) / 6)), ]
+      surrounding.data = surrounding.data[surrounding.data$logP > logp & 
+                                          surrounding.data$logP < logp + 5, ]
       if(length(surrounding.data[, 1]) == 0){
-        data$label.y.offset[ind] = (data$logP[ind] + 2) * 1.03
+        data$label.y.offset[ind] = (logp + 2) * 1.03
       } else {
         data$label.y.offset[ind] = max(surrounding.data$logP) * 1.03
       }
-      rm(surrounding.data, ind, pos)
     }
     
-    for(offset.pos in unique(data$label.y.offset)){
-      if(length(data[data$label.y.offset == offset.pos, 1]) > 1){
-        data$label.y.offset[data$label.y.offset == offset.pos] = jitter(data$label.y.offset[data$label.y.offset == offset.pos], amount = 1)
-      }
-    }
-    
-    for(snp in data$SNP){
-      ind = which(data$SNP == snp)
+    for(s in data$SNP){
+      ind = which(data$SNP == s)
       pos = data$BP[ind]
-      
       logp = data$logP[ind]
       label.x = data$label.x.offset[ind]
       label.y = data$label.y.offset[ind]
       side = data$side[ind]
       
-      # add lines and text to label SNP
-      text(x = label.x, y = (label.y * 1.01), labels = snp, cex = 0.7, pos = side, offset = 0.2)
-      segments(x0 = pos, x1 = label.x, y0 = logp, y1 = label.y * 1.01)
+      text(x = label.x, y = (label.y * 1.01), labels = s, cex = 0.65, pos = side, offset = 0.2)
+      segments(x0 = pos, x1 = label.x, y0 = logp, y1 = label.y * 1.01, col = "gray50", lwd = 0.8)
     }
   }
 }
 
-#### Function to merge the gene and gene colours with the relevant region of the summary stats: ####
 merge.gene.colour <- function(data, pvalues, GENE.colours) {
-  # add gene pvalues to data.frame with gene positions
   res = merge(data, pvalues, by = "Gene", all.x = TRUE)
-  # convert pvalues to categories
-  res$gene.col = cut(res$P, breaks = c(0, 1e-20, 1e-15, 1e-10, 2.6e-6, 1), labels = c("<1e-20", ">1e-20", ">1e-15", ">1e-10", ">2.6e-6"), include.lowest = TRUE, right = TRUE)
-  # add plotting colours based on pvalue categories
+  res$gene.col = cut(res$P, breaks = c(0, 1e-20, 1e-15, 1e-10, 2.6e-6, 1), 
+                     labels = c("<1e-20", ">1e-20", ">1e-15", ">1e-10", ">2.6e-6"), 
+                     include.lowest = TRUE, right = TRUE)
   res = merge(res, GENE.colours, by.x = "gene.col", by.y = "Threshold", all.x = TRUE)
-  # make all genes without a pvalue grey
   res$Colour[is.na(res$Colour)] = "#7F7F7F"
-  # sort by gene start position
   res = res[order(res$Start), ]
-  
   return(res)
-}
-
-
-#### Function to plot the gene tracks and labels properly: ####
-gene.position <- function(data, fontsize = 0.6, plot.var = NULL) {
-  # Variables:
-  x.min = as.numeric(plot.var[2])
-  x.max = as.numeric(plot.var[3])
-  plot.length = x.max - x.min
-  
-  # narrow down to genes to be labeled before working out whether to label above/below line
-  if(plot.length > 5000000) {
-    gene.length = 16000
-  } else if(plot.length > 2000000) {
-    gene.length = 12000
-  } else {
-    gene.length = 8000
-  }
-
-  if(length(data$Gene) >= 10) {
-    text_data <- data[abs(data$Start - data$End) > gene.length, ]
-  } else{
-    text_data <- data
-  }
-  
-  # add gene lines & labels to plot
-  odd = 1
-  for (i in 1:length(data$Gene)) {
-    lines(x = c(data$Start[i], data$End[i]), y = c(data$Y[i], data$Y[i]), lwd = 3, col = as.character(data$Colour[i]))
-  }
-  
-  for(i in 1:length(text_data$Gene)) {
-    mid.point = (max(x.min, text_data$Start[i]) + min(text_data$End[i], x.max))/2
-    if (odd%%2 == 0) {
-      text(x = mid.point, y = text_data$Y[i], labels = text_data$Gene[i], font = 3, cex = fontsize, pos = 3, offset = 0.2)
-    } else {
-      text(x = mid.point, y = text_data$Y[i], labels = text_data$Gene[i], font = 3, cex = fontsize, pos = 1, offset = 0.25)
-    }
-    odd = odd + 1
-  }
-}
-
-
-#### Function to convert string P-value into logged P: ####
-elog10 <- function(p) {
-  if (is.character(p) & grepl('e-', p)) {
-    split_p <- base::strsplit(p, split = "e-")
-    tmp <- unlist(split_p)
-    res <- as.numeric(tmp[2]) - log10(as.numeric(tmp[1]))
-  } else {
-    res <- -log10(as.numeric(p))
-  }
-  return(res)
-}
-
-
-
-                       #################################DELETE, DOES NOT APPLY
-#### Function to get the LD information of specified population from the 1000 Genomes data (March 2017 release): ####
-# NOTE: the input SNP MUST be in rsID format, not CHR:POS-based.
-# NOTE: This function will leave/save the LD information in the working directory for future reference (e.g. if the user wanted to use the same LD information)
-get.ld <- function(region, snp, population) {
-  ld.snp = snp
-
-  if (region[1] == "23") {
-    region[1] = "X"
-  }
-  
-  vcf.filename = "POP_chrZZ.no_relatives.no_indel.biallelic.vcf.gz" ############ DELETE
-  vcf.filename = gsub(pattern = 'ZZ', replacement = region[1], vcf.filename)
-  if(population == "TAMA"){
-    vcf.filename = gsub(pattern = 'POP', replacement = "AFR_AMR_EAS_EUR", vcf.filename)
-  } else{
-    vcf.filename = gsub(pattern = 'POP', replacement = population, vcf.filename)
-  }
-  
-  # check necessary 1000 genomes file can be reached
-  if(!(vcf.filename %in% list.files(path = paste0("/Volumes/archive/merrimanlab/reference_files/VCF/1000Genomes_vcf_files/Phase3_March2017/", population)))){
-    stop(paste0("The file ", paste0("/Volumes/archive/merrimanlab/reference_files/VCF/1000Genomes_vcf_files/Phase3_March2017/", population, "/", vcf.filename), " cannot be found."))
-  } ####################### DELETE
-  
-  # gsub the command and filename for chr, start/end positions and the population:
-  base.command = "source ~/.bashrc;
-  bcftools view \
-    --regions ZZ:Y1-Y2 \
-    --output-type z \
-    --output-file tmp.vcf.gz \
-    /Volumes/archive/merrimanlab/reference_files/VCF/1000Genomes_vcf_files/Phase3_March2017/POP/1000VCF;
-
-  plink \
-    --vcf tmp.vcf.gz \
-    --allow-no-sex \
-    --snps-only \
-    --r2 \
-    --inter-chr \
-    --ld-snp SNP \
-    --ld-window-r2 0 \
-    --out POP_region_ZZ.Y1-Y2_SNP;
-
-  rm tmp.vcf.gz POP_region_ZZ.Y1-Y2_SNP.nosex"
-  
-  base.command = gsub(pattern = "\n ", replacement = "", base.command)
-  base.command = gsub(pattern = 'ZZ', replacement = region[1], base.command)
-  base.command = gsub(pattern = 'Y1', replacement = region[2], base.command)
-  base.command = gsub(pattern = 'Y2', replacement = region[3], base.command)
-  base.command = gsub(pattern = "1000VCF", replacement = vcf.filename, base.command)
-  base.command = gsub(pattern = 'POP', replacement = population, base.command)
-  base.command = gsub(pattern = 'SNP', replacement = ld.snp, base.command)
-  
-  # Make a system call to run the bcftools/plink command.
-  # I'm only assigning it to a variable to suppress any possible form of
-  # messages/outputs from the command, just in case
-  # ignores any errors when running the LD command, but will output the error to your screen
-  messages = system(base.command, ignore.stdout = TRUE, intern = TRUE, ignore.stderr = TRUE)
-  
-  # Import the LD data:
-  ld.file = "POP_region_ZZ.Y1-Y2_SNP.ld"
-  ld.file = gsub(pattern = 'ZZ', replacement = region[1], ld.file)
-  ld.file = gsub(pattern = 'Y1', replacement = region[2], ld.file)
-  ld.file = gsub(pattern = 'Y2', replacement = region[3], ld.file)
-  ld.file = gsub(pattern = 'POP', replacement = population, ld.file)
-  ld.file = gsub(pattern = 'SNP', replacement = ld.snp, ld.file)
-  
-  # Check the ld file was made & import it
-  if(ld.file %in% list.files(pattern = ".ld")){
-    ld = read.table(ld.file, stringsAsFactors = FALSE, header = TRUE)
-  } else{
-    message("Top SNP / specified SNP not in 1000 Genomes biallelic SNPs")
-    ld = data.frame(CHR_A = NA, BP_A = NA, SNP_A = NA, CHR_B = NA, BP_B = NA, SNP_B = NA, R2 = NA)
-  }
-  # return the ld file data
-  return(ld)
-}
-
-#### Function to read in and pull out relevant info from PLINK clump output: ####
-read.plink.loci <- function(file = NULL) {
-  if (is.null(file)) {
-    stop('You must provide a file for reading')
-  }
-  data = read.table(file, stringsAsFactors = FALSE, header = TRUE)
-  data = data[,c(1,3:5)]
-  return(data)
 }
