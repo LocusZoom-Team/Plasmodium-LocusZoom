@@ -1,59 +1,75 @@
-library(dplyr)
-library(vroom)
+#!/usr/bin/env Rscript
+# ============================================================================
+# LocusZoom Plot Generator for Plasmodium falciparum
+# ============================================================================
+# 
+# USAGE:
+# Rscript test.R <assoc_file> <ld_file> <snp> <genes_file> [secondary_snp] [offset] [title] [output_base]
 
-example.assoc.log <- read.delim("example.assoc.log", stringsAsFactors = FALSE, header = TRUE)
-Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE) ###########################only thing we need to change
-Example.genes <- read.delim("Example.genes", stringsAsFactors = FALSE, header = TRUE)
+# Load required packages
+suppressPackageStartupMessages({
+  library(vroom)
+})
 
-# load the locuszoom function into R
-source("functions/locus_zoom.R")
+# Get command line arguments
+args <- commandArgs(trailingOnly = TRUE)
 
-single = "rs2540781"
-secondary = c("rs2540781", "rs8053279")
-#############################################we will need to change this so that user will specify different SNP names that isnt RS, also change gene list
-# create a LocusZoom-like plot ##################################################################################
-source("functions/locus_zoom.R")
-locus.zoom(data = example.assoc.log, snp = "rs1008400", ld.file = Example.ld, offset = 200000, genes.data = Example.genes, noncoding = FALSE, plot.title = "Association of FTO with BMI in Europeans", nominal = 6, significant = 7.3, file.name = "Example.jpg", secondary.snp = NA, population = "EUR", sig.type = "P")
-#################################################################################################################
+# Parse arguments
+assoc_file <- args[1]
+ld_file <- args[2]
+snp <- args[3]
+genes_file <- args[4]
+secondary_snps <- ifelse(length(args) >= 5, args[5], NA)
+offset <- ifelse(length(args) >= 6, as.numeric(args[6]), 50000)
+title <- ifelse(length(args) >= 7, args[7], "LocusZoom Plot")
+output_file <- ifelse(length(args) >= 8, args[8], "LocusZoom_Plot.jpg")
 
+# Source the function
+source("../functions/locus_zoom.R")
 
-Stuff below this can likely be deleted
+# Check files
+if(!file.exists(assoc_file)) stop("Association file not found")
+if(!file.exists(ld_file)) stop("LD file not found")
+if(!file.exists(genes_file)) stop("Genes file not found")
 
-# Testing with one secondary variant
-source("functions/locus_zoom.R")
-locus.zoom(data = example.assoc.log, snp = "rs1008400", ld.file = Example.ld, offset = 200000, genes.data = Example.genes, noncoding = FALSE, plot.title = "Association of FTO with BMI in Europeans", nominal = 6, significant = 7.3, file.name = "Example.jpg", secondary.snp = single, population = "EUR", sig.type = "P")
+# Read files
+cat("\n========================================\n")
+cat("Reading files...\n")
 
-# Testing with two secondary variant
-source("functions/locus_zoom.R")
-locus.zoom(data = example.assoc.log, snp = "rs1008400", ld.file = Example.ld, offset = 200000, genes.data = Example.genes, noncoding = FALSE, plot.title = "Association of FTO with BMI in Europeans", nominal = 6, significant = 7.3, file.name = "Example.jpg", secondary.snp = secondary, population = "EUR", sig.type = "P")
+data <- vroom(assoc_file, delim = "\t", show_col_types = FALSE, comment = "")
+data <- as.data.frame(data)
+cat("Association:", nrow(data), "rows\n")
 
-# Testing with a larger data set #####DELETE
-Example.assoc.linear <- read.delim("eur_chr4.txt", stringsAsFactors = FALSE, header = TRUE)
-Example.ld <- read.table("rs145179124.ld", stringsAsFactors = FALSE, header = TRUE)
+ld <- read.table(ld_file, header = TRUE, stringsAsFactors = FALSE)
+cat("LD file:", nrow(ld), "rows\n")
 
-example.assoc.log$P = example.assoc.log$P + .Machine$double.xmin
+# Display LD SNP range
+ld$BP <- as.numeric(gsub(".*:", "", ld$SNP_B))
+cat("\nLD SNP position range:", min(ld$BP), "to", max(ld$BP), "\n")
+cat("LD SNP span:", max(ld$BP) - min(ld$BP), "bp\n")
 
-source("functions/locus_zoom.R")
-locus.zoom(data = example.assoc.log, snp = "rs145179124", ld.file = Example.ld, offset = 500000, genes.data = Example.genes, noncoding = FALSE, plot.title = "EUR gout", nominal = 6, significant = 7.3, file.name = "rs145179124.jpg", secondary.snp = NA, population = "EUR", sig.type = "P")
+# Find lead SNP position
+lead_snp_data <- data[data$SNP == snp, ]
+if(nrow(lead_snp_data) > 0) {
+  lead_pos <- lead_snp_data$BP[1]
+  cat("\nLead SNP position:", lead_pos, "\n")
+  needed_left <- lead_pos - min(ld$BP)
+  needed_right <- max(ld$BP) - lead_pos
+  cat("Recommended minimum offset:", max(needed_left, needed_right), "bp\n")
+}
 
-# Try locating other loci as secondary SNP:
-loci = read.delim('EUR_meta_full1_clean_rsid_0.01.clumped.clean', stringsAsFactors = F, header = T) %>% select(1:5)
+genes <- read.delim(genes_file, stringsAsFactors = FALSE, header = TRUE)
+cat("Genes:", nrow(genes), "rows\n")
 
-example.assoc.log$P[which(example.assoc.log$SNP != 'rs145179124')] = example.assoc.log$P[which(example.assoc.log$SNP != 'rs145179124')] + .Machine$double.xmin
-secondary = loci$SNP[which(loci$SNP != 'rs145179124')]
+# Generate plot
+cat("\n========================================\n")
+cat("Generating LocusZoom plot...\n")
+cat("  - Auto-offset will adjust to capture all LD SNPs\n")
+cat("  - LD colors based on unique R2 values\n")
+cat("========================================\n")
 
-source("functions/locus_zoom.R")
-locus.zoom(data = example.assoc.log, snp = "rs145179124", ld.file = Example.ld, offset = 500000, genes.data = Example.genes, noncoding = FALSE, plot.title = "EUR gout", nominal = 6, significant = 7.3, file.name = "rs145179124.jpg", secondary.snp = secondary, population = "EUR", sig.type = "P", secondary.label = T)
-
-# Try with SLC2A9: ######DELETE
-Example.assoc.linear <- read.delim("eur_chr4.txt", stringsAsFactors = FALSE, header = TRUE)
-Example.ld <- read.table("rs76242518.ld", stringsAsFactors = FALSE, header = TRUE)
-
-Example.assoc.linear$P = Example.assoc.linear$P + .Machine$double.xmin
-
-Example.assoc.linear$P[which(Example.assoc.linear$SNP != 'rs76242518')] = Example.assoc.linear$P[which(Example.assoc.linear$SNP != 'rs76242518')] + .Machine$double.xmin
-secondary = loci$SNP[which(loci$SNP != 'rs76242518')]
-
-source("functions/locus_zoom.R")
-locus.zoom(data = Example.assoc.linear, snp = "rs76242518", ld.file = Example.ld, offset = 500000, genes.data = Example.genes, noncoding = FALSE, plot.title = "EUR gout", nominal = 6, significant = 7.3, file.name = "rs76242518.jpg", secondary.snp = secondary, population = "EUR", sig.type = "P", secondary.label = T, nplots = 2)
+locus.zoom(data = data, snp = snp, ld.file = ld, offset_bp = offset,
+           genes.data = genes, plot.title = title, nominal = 3, significant = 4,
+           file.name = output_file, secondary.snp = secondary_snps,
+           plot.type = "jpg", sig.type = "P", nonhuman = TRUE)
 
