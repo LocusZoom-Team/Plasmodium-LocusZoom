@@ -1,0 +1,33 @@
+PLINK v1.90b7 64-bit (16 Jan 2023)
+Options in effect:
+  --allow-extra-chr
+  --bfile /home/gwegman/Plasmodium-LocusZoom/LD_Bed/bed_file
+  --chr Pf3D7_07_v3
+  --from-bp 250000
+  --keep-allele-order
+  --ld-snp Pf3D7_07_v3:296804
+  --ld-window 100000000
+  --ld-window-kb 500
+  --ld-window-r2 0
+  --out /home/gwegman/plinker/testrunLD
+  --r2
+  --to-bp 350000
+
+Hostname: bioi
+Working directory: /home/gwegman/plinker
+Start time: Sun Apr 12 19:21:19 2026
+
+Random number seed: 1776039679
+644924 MB RAM detected; reserving 322462 MB for main workspace.
+253 out of 71923 variants loaded from .bim file.
+14496 people (0 males, 0 females, 14496 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to /home/gwegman/plinker/testrunLD.nosex .
+Using up to 39 threads (change this with --threads).
+Before main variant filters, 14496 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.773899.
+253 variants and 14496 people pass filters and QC.
+Note: No phenotypes present.
+--r2 to /home/gwegman/plinker/testrunLD.ld ... done.
+
+End time: Sun Apr 12 19:21:19 2026
