@@ -47,17 +47,17 @@ You must have PLINK installed to generate your own LD file. PLINK can be install
 ```{bash}
 wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip
 unzip plink_linux_x86_64_20230116.zip
-
+```
 You must have three bed files generated from your genotype VCF results. This can be done through plink. Select the desired chromosome from `Pfalciparum_gene_list.txt`. This must be an exact match to the name present in the row/column (i.e. Pf3D7_10_v3 selects chromosome 10). Select your desired base pair range via the --from-bp and --to-bp arguments. Set a range of 50-1000 for the --ld-window-kb argument. To select your lead SNP (--ld-snp), make sure that it is coming from the same chromosome, and that it exists within the basepair window specified.
 
 Example terminal code: 
 
 ```{bash}
 ./plink --bfile /home/user/Plasmodium-LocusZoom/LD_Bed/bed_file --allow-extra-chr --chr Pf3D7_07_v3 --from-bp 250000 --to-bp 350000 --r2 --ld-window 100000000 --ld-window-kb 500 --ld-window-r2 0 --ld-snp Pf3D7_07_v3:296804 --keep-allele-order --out /home/user/LD_files/testrunLD
-
+```
 ### Example locus.zoom run:
 
-```
+
 # load necessary files into R
 Example.assoc.linear <- read.delim("Example.assoc.linear", stringsAsFactors = FALSE, header = TRUE)
 Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE)
