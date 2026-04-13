@@ -1,10 +1,20 @@
-### Information Regarding the Test Run for LocusZoom Plasmodium Falciparum
+### Information Regarding a Test Run for LocusZoom Plasmodium Falciparum
+
+LocusZoom requires 3 files:
+
+`example.assoc.log`: A logistic association file generated from your GWAS association test, via PLINK.
+
+`Example.genes`: A genelist generated from an annotated genome file. More information regarding *P. falciparum* annotated genome can be found at: https://www.malariagen.net/resource/34/
+
+`testrunLD.ld`: A linkage disequillibrium measurement file generated from bed files. To generate your own, see the `README.md`.
 
 ### LD Script
 
 Chromosome: 7
 
 SNP: 296804
+
+Phenotype: Monoclonal infections.
 
 Code:
 

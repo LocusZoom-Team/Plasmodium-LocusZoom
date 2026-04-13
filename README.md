@@ -48,90 +48,11 @@ You must have PLINK installed to generate your own LD file. PLINK can be install
 wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip
 unzip plink_linux_x86_64_20230116.zip
 ```
-You must have three bed files generated from your genotype VCF results. This can be done through plink. Select the desired chromosome from `Pfalciparum_gene_list.txt`. This must be an exact match to the name present in the row/column (i.e. Pf3D7_10_v3 selects chromosome 10). Select your desired base pair range via the --from-bp and --to-bp arguments. Set a range of 50-1000 for the --ld-window-kb argument. To select your lead SNP (--ld-snp), make sure that it is coming from the same chromosome, and that it exists within the basepair window specified.
+You must have three bed files generated from your genotype VCF results. This can be done through PLINK. Select the desired chromosome from `Pfalciparum_gene_list.txt`. This must be an exact match to the name present in the row/column (i.e. Pf3D7_10_v3 selects chromosome 10). Select your desired base pair range via the --from-bp and --to-bp arguments. Set a range of 50-1000 for the --ld-window-kb argument. To select your lead SNP (--ld-snp), make sure that it is coming from the same chromosome, and that it exists within the basepair window specified.
 
 Example terminal code: 
 
 ```{bash}
 ./plink --bfile /home/user/Plasmodium-LocusZoom/LD_Bed/bed_file --allow-extra-chr --chr Pf3D7_07_v3 --from-bp 250000 --to-bp 350000 --r2 --ld-window 100000000 --ld-window-kb 500 --ld-window-r2 0 --ld-snp Pf3D7_07_v3:296804 --keep-allele-order --out /home/user/LD_files/testrunLD
 ```
-### Example locus.zoom run:
-
-
-# load necessary files into R
-Example.assoc.linear <- read.delim("Example.assoc.linear", stringsAsFactors = FALSE, header = TRUE)
-Example.ld <- read.table("Example.ld", stringsAsFactors = FALSE, header = TRUE)
-Unique.genes <- read.delim("Gencode_GRCh37_Genes_UniqueList2021.txt", stringsAsFactors = FALSE, header = TRUE)
-
-# load the locuszoom function into R
-source("functions/locus_zoom.R")
-
-# create a LocusZoom-like plot
-locus.zoom(data = Example.assoc.linear,                                    # a data.frame (or a list of data.frames) with the columns CHR, BP, SNP, and P
-           region = c(16, 53340000, 54550000),                             # the chromosome region to be included in the plot
-           offset_bp = 0,                                                  # how many basepairs around the SNP / gene / region of interest to plot
-           ld.file = Example.ld,                                           # a file with LD values relevant to the SNP specified above
-           genes.data = Unique.genes,			                   # a file of all the genes in the region / genome
-           plot.title = "Association of FTO with BMI in Europeans",        # the plot title
-           file.name = "Example.jpg",                                      # the name of the file to save the plot to
-           secondary.snp = c("rs1121980", "rs8060235"),                    # a list of SNPs to label on the plot
-           secondary.label = TRUE)                                         # TRUE/FALSE whether to add rsIDs of secondary SNPs to plot
-```
-
-![](Example.jpg)
-
-### Compulsory flags:
-
-One of `snp`, `gene`, or `region` must be specified to create the plot:
-
- - `snp`: specify the SNP to be annotated (you must also include `ignore.lead = TRUE` if choosing this option)
- - `gene`: specify the Gene to make the plot around
- - `region`: specify the chromsome region you want to plot (must be specified as `c(chr, start, end)`
-
-As well as each of the following:
-
- - `data`: specify the data.frame (or a list of data.frames) to be used in the plot (requires the columns "CHR", "BP", "SNP", and either "P" or "logBF")
- - `genes.data`: specify a data.frame with gene locations to plot beneath the graph (requires the columns "Gene", "Chrom", "Start", "End", and "Coding") - the Gencode or UCSC `{Gencode,UCSC}_GRCh37_Genes_UniqueList{2017,2021}.txt` files in this repo can be used for this
- - `plot.title`: specify a title to go above your plot
- - `file.name`: specify a filename for your plot to be saved to
-
-### Optional flags:
-
- - `ld.file`: specify a data.frame with LD values relevant to the SNP specified by `snp` (requires the columns "SNP_B" and "R2") 
- - `offset_bp`: specify how far either side of the `snp`, `gene`, or `region` you want the plot to extend (defaults to 200000)
- - `psuedogenes`: when using one of the three gene lists in this repo you can specify whether you want to plot the pseudogenes (defaults to FALSE)
- - `RNAs`: when using one of the two gene lists created in 2021 in this repo you can specify whether you want to plot lncRNA and ncRNA genes (defaults to FALSE)
-- `plot.type`: specify the file format of the plot (defaults to "jpg", options are "jpg", "svg", or "view_only" which will not save the plot, but output it to RStudio Viewer instead)
- - `nominal`: specify the nominal significance level to draw on the plot (in -log10(_P_), default is 6 or _P_ = 1e-6)
- - `significant`: specify the significance level to draw on the plot (in -log10(_P_), default is 7.3 or _P_ = 5e-8) 
- - `secondary.snp`: provide the list of secondary SNP IDs (must match IDs in results file) to be highlighted on the plot
- - `secondary.label`: specify whether to label the secondary SNPs on the plot (defaults to FALSE)
- - `secondary.circle`: specify whether to add a red circle around the secondary SNPs on the plot (defaults to TRUE)
- - `genes.pvalue`: specify a data.frame of p-values (e.g. MAGMA results) associated with each gene (requires the columns "Gene" and "P") 
- - `colour.genes`: specify whether to colour genes based on a p-value provided in gene.pvalue (defaults to FALSE)
- - `population`: specify the 1000 genomes population to use when calculating LD if ld.file = NULL (defaults to "EUR", options are "AFR", "AMR", "EAS", "EUR", "SAS", "TAMA", and "ALL")
- - `sig.type`: specify whether the y-axis should be labelled as -log10(_P_) or log10(BF) (defaults to "P", options are "P", "logP", or "logBF"). For the "P" option an additional -log10 conversion of the input "P" column will be performed.
- - `nplots`: specify whether multiple results plots will be saved into your jpeg file (e.g. plot two GWAS results one above another; defaults to FALSE)
- - `ignore.lead`: specify whether to ignore the SNP with the smallest P and use the SNP specified by 'snp' to centre the plot (defaults to FALSE)
- - `rsid.check`: specify whether to check if the SNPs are labelled with rsIDs - should only matter if script is calculating LD for you (defaults to TRUE)
- - `nonhuman`: specify whether the data to plot has come from a non-human sample-set (defaults to FALSE) - if the data going in is from a non-human species make sure the chromosome column is only numbers (e.g. 1 instead of chr1, 23 instead of X). 
-
-## Secondary Example:
-
-_This is not reproducible from the example data._
-
-```
-locus.zoom(data = EUR_meta_full1_clean_rsid.nfiltered_chr7,
-           gene = "MLXIPL",
-           offset_bp = 500000,
-           genes.data = Gencode_GRCh37_Genes_UniqueList2021,
-           plot.title = "Association of MLXIPL with gout in Europeans",
-           file.name = "alternateExample.jpg",
-           genes.pvalue = MAGMA_EUR_meta_full_Gencode2021,
-           colour.genes = TRUE,
-           psuedogenes = FALSE,
-           RNAs = TRUE)
-```
-
-![](alternateExample.jpg)
-
+### For example LocusZoom-like plot generation, see `Information.md` in the `Example` folder
