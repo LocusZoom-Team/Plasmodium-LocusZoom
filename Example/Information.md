@@ -26,3 +26,5 @@ Code:
 ```{bash}
 Rscript test.R example.assoc.log testrunLD.ld Pf3D7_07_v3:296804 Example.genes Pf3D7_07_v3:309298 10000 SNP_296804_Association_With_Mono /home/user/Plasmodium-LocusZoom/Example/output.jpeg
 ```
+
+![Example Run: Association of SNP 296804 with monoclonal infections.](output.jpeg)
