@@ -71,3 +71,7 @@ unzip plink_linux_x86_64_20230116.zip
   - Linkage Disequillibrium: You will generate your own LD file for each run of LocusZoom based on what SNP you are measuring the LD of. Use the file `extractLD_bfile.sh` within the `functions` to help generate the LD file.
   - Gene List: A Plasmodium falciparum gene list `Pfalciparum_gene_list.txt` is provided in the `genelist` folder. If you wish to generate your own from a P. falciparum (.gff) file, use `GetGeneList.py`, also present in the `genelist` folder.
 
+### See Our Wiki for Information on Running Our Tool
+
+[!https://github.com/LocusZoom-Team/Plasmodium-LocusZoom/wiki/Generating-Your-Own-LD-via-our-LD-Script](Generating Your Own LD)
+
