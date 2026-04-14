@@ -1,5 +1,3 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5154379.svg)](https://doi.org/10.5281/zenodo.5154379)
-
 # Authors
 Original LocusZoom Authors: Tanya J Major and Riku Takei
 
