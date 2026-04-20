@@ -63,5 +63,4 @@ unzip plink_linux_x86_64_20230116.zip
 
 ### See Our Wiki for Information on Running Our Tool
 
-![https://github.com/LocusZoom-Team/Plasmodium-LocusZoom/wiki/Generating-Your-Own-LD-via-our-LD-Script](Generating Your Own LD)
-
+https://github.com/LocusZoom-Team/Plasmodium-LocusZoom/wiki
