@@ -25,16 +25,6 @@ This script creates an R function to create LocusZoom-like plots. Three example 
 
 ### Dependancies
 
-NEED VROOM INSTALLED
-
-in terminal, type R, enter
-
-install.packages("vroom")
-
-answer yes to all prompts
-
-also need to install PLINK and scales
-
 `Scales`
 
 `Vroom`: Vroom is required to generate the LocusZoom plot when running the R script.
@@ -73,5 +63,5 @@ unzip plink_linux_x86_64_20230116.zip
 
 ### See Our Wiki for Information on Running Our Tool
 
-[!https://github.com/LocusZoom-Team/Plasmodium-LocusZoom/wiki/Generating-Your-Own-LD-via-our-LD-Script](Generating Your Own LD)
+![https://github.com/LocusZoom-Team/Plasmodium-LocusZoom/wiki/Generating-Your-Own-LD-via-our-LD-Script](Generating Your Own LD)
 
