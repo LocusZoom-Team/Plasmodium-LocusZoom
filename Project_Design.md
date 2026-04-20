@@ -160,9 +160,9 @@ Manhattan plot.
 
 **Flowchart: User Experience**
 
-![alt text](image-1.png)
+![alt text](flowchart.png)
 
 **Milestones**
 
-![alt text](image.png)
+![alt text](milestones.png)
 
