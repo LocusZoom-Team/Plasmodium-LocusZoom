@@ -15,7 +15,7 @@ The purpose of this tool is to allow users to generate LocusZoom plots from _Pla
 ********
 The GWAS data used for generating LD matrices can be found at https://www.malariagen.net/resource/34/
 
-The Phenotypic data needed for logistic association metrics can be found in the Phenotypes folder.
+The Phenotypic data needed for logistic association metrics can be found in the `AssociationFiles` folder.
 
 ********
 
@@ -57,7 +57,7 @@ unzip plink_linux_x86_64_20230116.zip
 
 ### Generating Requirements
 
-  - Logistic Assocation: Files in the `Phenotypes` folder can be used for your LocusZoom runs. If you wish to generate your own, see requirements above.
+  - Logistic Assocation: Files in the `AssociationFiles` folder can be used for your LocusZoom runs. If you wish to generate your own, see requirements above.
   - Linkage Disequillibrium: You will generate your own LD file for each run of LocusZoom based on what SNP you are measuring the LD of. Use the file `extractLD_bfile.sh` within the `functions` to help generate the LD file.
   - Gene List: A Plasmodium falciparum gene list `Pfalciparum_gene_list.txt` is provided in the `genelist` folder. If you wish to generate your own from a P. falciparum (.gff) file, use `GetGeneList.py`, also present in the `genelist` folder.
 
