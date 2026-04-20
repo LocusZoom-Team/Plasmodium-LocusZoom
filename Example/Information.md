@@ -14,7 +14,7 @@ Chromosome: 7
 
 SNP: 296804
 
-Phenotype: Monoclonal infections.
+Phenotype: Chloroquine resistance in individuals with monoclonal infections.
 
 Code:
 
