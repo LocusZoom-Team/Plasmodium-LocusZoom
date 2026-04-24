@@ -211,7 +211,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA,
   cat("Position:", lead.pos, "\n")
   cat("-log10(P):", round(lead.logp, 2), "\n")
   
-  # PROCESS LD FILE
+  # PROCESS LD FILE - Standard LocusZoom colors
   if (!is.null(ld.file) && nrow(ld.file) > 0) {
     
     cat("\n=== LD FILE PROCESSING ===\n")
@@ -242,59 +242,34 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA,
       
       cat("Total SNPs in LD file:", nrow(ld_data), "\n")
       
-      # PRINT SUMMARY OF LD SNPs
-      cat("\n=== LD SNPs SUMMARY ===\n")
-      cat(sprintf("%-30s %10s %12s\n", "SNP", "Position", "R2"))
-      cat(rep("-", 55), "\n", sep="")
-      
-      ld_data_sorted <- ld_data[order(extract_position(ld_data$SNP)), ]
-      for(i in 1:nrow(ld_data_sorted)) {
-        pos <- extract_position(ld_data_sorted$SNP[i])
-        r2 <- ld_data_sorted$R2[i]
-        cat(sprintf("%-30s %10d %12.6f\n", ld_data_sorted$SNP[i], pos, r2))
-      }
-      cat(rep("-", 55), "\n", sep="")
-      
-      # Get unique R2 values
-      unique_r2 <- sort(unique(ld_data$R2))
-      n_unique <- length(unique_r2)
-      
-      # Create color palette
-      if(n_unique == 1) {
-        exact_colors <- "#B2182B"
-      } else {
-        exact_colors <- colorRampPalette(c(
-          "#2166AC", "#d56bb7ae", "#67A9CF", "#d6bf25", "#D1E5F0",
-          "#adcf16", "#F4A582", "#D6604D", "#09a40e", "#0e0e0e"
-        ))(n_unique)
-      }
-      
-      color_map <- setNames(exact_colors, as.character(sort(unique_r2)))
-      
-      LD.colours <- data.frame(
-        R2_value = sort(unique_r2),
-        Colour = exact_colors,
-        stringsAsFactors = FALSE
-      )
-      
+      # Merge LD data with GWAS data
       data.plot <- merge(data, ld_data, by = "SNP", all.x = TRUE)
       
-      data.plot$Colour <- sapply(1:nrow(data.plot), function(i) {
-        r2 <- data.plot$R2[i]
+      # Assign colors based on R2 values - standard LocusZoom gradient
+      data.plot$Colour <- sapply(data.plot$R2, function(r2) {
         if(is.na(r2)) {
-          return("#D3D3D3")
+          return("gray80")
+        } else if(r2 >= 0.8) {
+          return("#D73027")  # Red
+        } else if(r2 >= 0.6) {
+          return("#FC8D57")  # Orange
+        } else if(r2 >= 0.4) {
+          return("#FEE08B")  # Yellow
+        } else if(r2 >= 0.2) {
+          return("#ABD9E9")  # Light blue
         } else {
-          r2_char <- as.character(r2)
-          if(r2_char %in% names(color_map)) {
-            return(color_map[r2_char])
-          } else {
-            closest_idx <- which.min(abs(unique_r2 - r2))
-            return(exact_colors[closest_idx])
-          }
+          return("#2C7BB6")  # Dark blue
         }
       })
       
       data.plot$has_ld <- !is.na(data.plot$R2)
+      
+      # Create LD colors data frame for legend
+      LD.colours <- data.frame(
+        R2_value = c(0.8, 0.6, 0.4, 0.2, 0),
+        Colour = c("#D73027", "#fc8d57", "#Fee08b", "#ABD9E9", "#2C7BB6"),
+        Label = c("≥0.8", "≥0.6", "≥0.4", "≥0.2", "<0.2")
+      )
       
       cat("\n=== COLOR ASSIGNMENT ===\n")
       cat("SNPs with LD colors:", sum(data.plot$has_ld), "\n")
@@ -302,15 +277,15 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA,
       
     } else {
       data.plot = data
-      data.plot$Colour = "#D3D3D3"
+      data.plot$Colour = "gray80"
       data.plot$has_ld = FALSE
-      LD.colours <- data.frame(R2_value = 0, Colour = "#D3D3D3")
+      LD.colours <- data.frame(R2_value = 0, Colour = "gray80", Label = "No LD data")
     }
   } else {
     data.plot = data
-    data.plot$Colour = "#D3D3D3"
+    data.plot$Colour = "gray80"
     data.plot$has_ld = FALSE
-    LD.colours <- data.frame(R2_value = 0, Colour = "#D3D3D3")
+    LD.colours <- data.frame(R2_value = 0, Colour = "gray80", Label = "No LD data")
   }
   
   # Mark lead SNP
@@ -483,8 +458,6 @@ plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA,
   abline(h = nominal, col = "blue", lty = "dashed", lwd = 1.5)
   abline(h = significant, col = "red", lty = "dashed", lwd = 1.5)
   
-  
-  
   # Plot the lead SNP (purple diamond, larger and bold)
   if (lead.snp %in% data.plot$SNP) {
     ind = which(data.plot$SNP == lead.snp)
@@ -508,89 +481,52 @@ plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA,
     }
   }
   
-  # Add CLEAN LEGEND 
+  # Add LEGEND - Standard LocusZoom style
   par(xpd = TRUE)
   
   has_ld_colors <- !is.null(ld.colours) && nrow(ld.colours) > 1 && 
                    any(data.plot$has_ld == TRUE, na.rm = TRUE)
   
   if(has_ld_colors) {
-    # Get R2 values for legend
-    r2_values <- ld.colours$R2_value[ld.colours$R2_value > 0]
-    r2_colors <- ld.colours$Colour[ld.colours$R2_value > 0]
-    n_r2 <- length(r2_values)
+    # Standard LocusZoom legend with R2 thresholds
+    legend_labels <- ld.colours$Label
+    legend_colors <- ld.colours$Colour
     
-    # Format R2 labels nicely
-    format_r2 <- function(x) {
-      if(x < 0.0001) return(sprintf("%.2e", x))
-      if(x < 0.01) return(sprintf("%.4f", x))
-      if(x < 0.1) return(sprintf("%.3f", x))
-      if(x < 1) return(sprintf("%.3f", x))
-      return(sprintf("%.1f", x))
-    }
-    
-    # Select legend entries (max 10 for clean display)
-    if(n_r2 <= 10) {
-      legend_entries <- 1:n_r2
-      legend_cex <- 0.6
-      legend_ncol <- 1
-    } else {
-      legend_entries <- round(seq(1, n_r2, length.out = 10))
-      legend_cex <- 0.55
-      legend_ncol <- 1
-    }
-    
-    legend_colors <- r2_colors[legend_entries]
-    legend_labels <- sapply(r2_values[legend_entries], format_r2)
-    
-    # LD legend (top)
+    # LD legend
     legend(x = "topright", 
            legend = legend_labels, 
            col = legend_colors, 
            fill = legend_colors, 
            border = legend_colors, 
            pt.cex = 1, 
-           cex = legend_cex, 
+           cex = 0.65, 
            bg = "white", 
            box.lwd = 0.5, 
            title = expression(bold(r^2)), 
-           ncol = legend_ncol,
+           ncol = 1,
            inset = c(-0.12, 0))
     
     # Calculate position for next legend
-    legend_height <- length(legend_entries) * 0.12
+    legend_height <- length(legend_labels) * 0.12
     legend_y_offset <- legend_height + 0.05
     
-    # No LD data legend (middle)
-    legend(x = "topright",
-           legend = c("No LD data"),
-           col = c("#D3D3D3"),
-           fill = c("#D3D3D3"),
-           border = c("#D3D3D3"),
-           pt.cex = 1,
-           cex = 0.6,
-           bg = "white",
-           box.lwd = 0.5,
-           title = "",
-           inset = c(-0.12, legend_y_offset))
-    
-    # Lead SNP legend (bottom)
+    # Lead SNP legend
     legend(x = "topright",
            legend = c("Lead SNP"),
            col = c("#9400D3"),
            pch = c(18),
            pt.cex = 1.5,
-           cex = 0.6,
+           cex = 0.65,
            bg = "white",
            box.lwd = 0.5,
            title = "",
-           inset = c(-0.12, legend_y_offset * 2))
+           inset = c(-0.12, legend_y_offset))
     
   } else {
     # Simple legend when no LD data
     legend(x = "topright",
            legend = c("SNPs", "Lead SNP"),
-           col = c("#D3D3D3", "#9400D3"),
+           col = c("gray80", "#9400D3"),
            pch = c(19, 18),
            pt.cex = c(1.2, 1.5),
            cex = 0.65,
