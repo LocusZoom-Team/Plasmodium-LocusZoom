@@ -8,7 +8,7 @@ This package was built from the original LocusZoom plotting tool: https://github
 
 Original Paper On LocusZoom: https://doi.org/10.1093/bioinformatics/btq419
 
-The purpose of this tool is to allow users to generate LocusZoom plots from _Plasmodium falciparum_ GWAS data. This package does not generate plots for non-Plasmodium data.
+The purpose of this tool is to allow users to generate LocusZoom plots from _Plasmodium falciparum_ GWAS data. This package does not generate plots for non-Plasmodium data, but can be easily adapted based on the skeleton of our tool.
 
 ## Make LocusZoom-like plots for _Plasmodium flaciparum_ using MalariaGen and our LD Matrix Generation File
 
