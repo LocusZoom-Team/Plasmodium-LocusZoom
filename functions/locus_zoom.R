@@ -11,7 +11,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA,
                        plot.type = "jpg", nominal = 3, 
                        significant = 4, 
                        file.name = NULL, secondary.snp = NA, 
-                       secondary.label = FALSE, secondary.circle = TRUE, 
+                       secondary.label = TRUE, secondary.circle = TRUE, 
                        genes.pvalue = NULL, colour.genes = FALSE, 
                        sig.type = "P", 
                        nplots = FALSE, ignore.lead = FALSE, 
@@ -422,7 +422,7 @@ locus.zoom <- function(data = NULL, snp = NA, gene = NA, region = NA,
 
 #### Function to create LocusZoom style plot  ####
 plot.locus <- function(data.plot = NULL, plot.title = NULL, secondary.snp = NA, 
-                       secondary.label = FALSE, secondary.circle = TRUE, 
+                       secondary.label = TRUE, secondary.circle = TRUE, 
                        sig.type = "P", plot.var = NULL, ld.colours = NULL) {
   
   y.max = as.numeric(plot.var[1])
