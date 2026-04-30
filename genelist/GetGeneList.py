@@ -42,4 +42,4 @@ df = pd.DataFrame(records) #Change file to dataframe to sort lines
 df = df.sort_values("End").drop_duplicates(subset="Gene", keep="last") #get rid of duplicates, keep the last one
 df = df.sort_values(["Chrom", "Start"]).reset_index(drop=True) #Sort df based on chrom and start
 
-df.to_csv("Pfalciparum_gene_list.txt", sep="\t", index=False) #write to file and we are done
+df.to_csv("Pfalciparum_gene_list.txt", sep="\t", index=False) #write to file
