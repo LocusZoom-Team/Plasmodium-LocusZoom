@@ -50,10 +50,12 @@ unzip plink_linux_x86_64_20230116.zip
 
 ### LocusZoom Requirements
 
-  - Logistic Association: A file of PLINK association results (only the "CHR", "SNP", "BP", and "P" columns are essential)
-  - Linkage Disequillibrium: A file of the LD between the SNP to be labelled (top-hit / SNP of interest) and the SNPs included in the PLINK results file
-    - this file MUST have a column called "SNP_B" (containing a list of all the SNPs in the results file) and a column called "R2" (containing the R^2 LD value of each SNP). The SNP names MUST match the names in the SNP column of the results file.
-  - Gene List: A file of the genes within the region for use in the annotation step. This file must have five columns, "Gene", "Chrom", "Start", "End", and "Coding". The `Pfalciparum_gene_list.txt` file in the `genelist` folder can be used for this file.
+  - Logistic Association: A file of PLINK association results based on the phenotype. LocusZoom uses the CHR, POS, ID, and P (p-value) columns.
+  - Linkage Disequillibrium: A file of the LD between the SNP of interest and the SNPs included in the association file (phenotype of interest).
+      This file should have columns:
+        SNP_B: All other SNPs in association file
+        R2: LD value of each SNP 
+  - Gene List: All annotated genes. LocusZoom uses Gen, Chrom, Start, End, and Coding. The `Pfalciparum_gene_list.txt` file in the `genelist` folder can be used for this file.
 
 ### Generating Requirements
 
