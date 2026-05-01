@@ -47,6 +47,7 @@ Answer yes to follow up questions.
 wget https://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20230116.zip
 unzip plink_linux_x86_64_20230116.zip
 ```
+Simply git clone our repository in linux terminal and cd into the folder. You are all set!
 
 ### LocusZoom Requirements
 
