@@ -13,7 +13,7 @@ The purpose of this tool is to allow users to generate LocusZoom plots from _Pla
 ## Make LocusZoom-like plots for _Plasmodium flaciparum_ using MalariaGen and our LD Matrix Generation File
 
 ********
-The GWAS data used for generating LD matrices can be found at https://www.malariagen.net/resource/34/
+The GWAS data used for generating LD matrices can be found at https://www.malariagen.net/resource/34/, or checkout our wiki for downloading the GWAS data from Zenodo.
 
 The Phenotypic data needed for logistic association metrics can be found in the `AssociationFiles` folder.
 
